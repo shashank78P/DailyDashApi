@@ -4,9 +4,9 @@ import { TaskManagement } from './taskManagement-model';
 
 @Controller('task-management')
 export class TaskManagementController {
-    constructor(private taskManagementService: TaskManagementService) { }
-    @Get()
-    getAllTasks(): TaskManagement[] {
-        return this.taskManagementService.getAllTasks();
-    }
+    // constructor(private taskManagementService: TaskManagementService) { }
+    // @Get()
+    // getAllTasks(): TaskManagement[] {
+    //     return this.taskManagementService.getAllTasks();
+    // }
 }
