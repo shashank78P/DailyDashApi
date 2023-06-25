@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException, BadRequestException, NotFound
 import { Users, UsersDocument } from './schema/users.schema';
 import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { UpdateUserDto, UserDataDto, UserDataForSignIn, _idDto } from "./types"
+import { UpdateUserDto, UserDataDto, UserDataForSignIn, _idDto } from "./types.dto"
 import * as bcrypt from "bcryptjs"
 
 @Injectable()

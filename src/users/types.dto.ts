@@ -3,16 +3,15 @@ import { IsDate, IsEmail, IsEmpty, IsNotEmpty, IsNumber, IsOptional, IsPhoneNumb
 export class UserDataDto {
     @IsString()
     @IsNotEmpty()
-    @IsEmpty()
-    firstName: String
+    firstName: string
+
+    @IsString()
+    @IsOptional()
+    middleName: string
 
     @IsOptional()
     @IsString()
-    middleName: String
-
-    @IsOptional()
-    @IsString()
-    lastName: String
+    lastName: string
 
     @IsDate()
     dob: string
@@ -20,36 +19,36 @@ export class UserDataDto {
     @IsOptional()
     @IsNumber()
     @IsPhoneNumber("IN")
-    phone: Number
+    phone: number
 
     @IsNotEmpty()
     @IsEmail()
     @IsString()
-    email: String
+    email: string
 
     @IsNotEmpty()
     @IsString()
     @IsStrongPassword()
-    password: String
+    password: string
 
     @IsNotEmpty()
     @IsString()
     @IsStrongPassword()
-    confirmPassword: String
+    confirmPassword: string
 }
 
 export class UpdateUserDto {
     @IsString()
     @IsOptional()
-    firstName: String
+    firstName: string
 
     @IsOptional()
     @IsString()
-    middleName: String
+    middleName: string
 
     @IsOptional()
     @IsString()
-    lastName: String
+    lastName: string
 
     @IsDate()
     @IsOptional()
@@ -57,54 +56,54 @@ export class UpdateUserDto {
 
     @IsOptional()
     @IsNumber()
-    phone: Number
+    phone: number
 
     @IsString()
     @IsEmail()
     @IsOptional()
-    email: String
+    email: string
 }
 
 export class UserDataForSignIn {
     @IsEmail()
     @IsNotEmpty()
-    email: String
+    email: string
 
     @IsString()
     @IsNotEmpty()
-    password: String
+    password: string
 
-    @IsString()
-    @IsNotEmpty()
-    Browser: String
+    // @IsString()
+    // @IsNotEmpty()
+    // Browser: string
 
-    @IsString()
-    @IsNotEmpty()
-    deviceType: String
+    // @IsString()
+    // @IsNotEmpty()
+    // deviceType: string
 
-    @IsString()
-    @IsNotEmpty()
-    os: String
+    // @IsString()
+    // @IsNotEmpty()
+    // os: string
 
-    @IsString()
-    @IsNotEmpty()
-    engine: String
+    // @IsString()
+    // @IsNotEmpty()
+    // engine: string
 
-    @IsString()
-    @IsNotEmpty()
-    type: String
+    // @IsString()
+    // @IsNotEmpty()
+    // type: string
 
-    @IsString()
-    @IsNotEmpty()
-    logInId: String
+    // @IsString()
+    // @IsNotEmpty()
+    // logInId: string
 
-    @IsString()
-    @IsNotEmpty()
-    createdAt: Date
+    // @IsString()
+    // @IsNotEmpty()
+    // createdAt: Date
 
-    @IsString()
-    @IsNotEmpty()
-    updatedAt: Date
+    // @IsString()
+    // @IsNotEmpty()
+    // updatedAt: Date
 
 }
 
