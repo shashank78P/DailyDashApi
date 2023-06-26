@@ -9,6 +9,7 @@ import { TaskManagementService } from './task-management/task-management.service
 import { UsersModule } from './users/users.module';
 import { LogInDevicesModule } from './log-in-devices/log-in-devices.module';
 import { MailServiceModule } from './mail-service/mail-service.module';
+import { FileSystemModule } from './file-system/file-system.module';
 
 // password
 // KTnUhKukTZ9n1fhf
@@ -21,7 +22,8 @@ import { MailServiceModule } from './mail-service/mail-service.module';
     TaskManagementModule,
     UsersModule,
     LogInDevicesModule,
-    MailServiceModule
+    MailServiceModule,
+    FileSystemModule
   ],
   controllers: [AppController, TaskManagementController],
   providers: [AppService, TaskManagementService],
