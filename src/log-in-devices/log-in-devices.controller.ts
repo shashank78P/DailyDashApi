@@ -26,19 +26,25 @@ export class LogInDevicesController {
         return this.LogInDevicesService.signIn(res, userData, ip);
     }
 
-    @UseGuards(AuthGuard())
+    // @UseGuards(AuthGuard())
     @Get("/")
     async getDemo(
         @Req() req,
-        @CurrentUser() user
+        // @CurrentUser() user
     ) {
-        const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        const ipAddress = req.headers['x-forwarded-for']
+            || req.socket.remoteAddress
+            || req.headers['cf-connecting-ip']
+            || req.headers['c-real-ip'];
         console.log('Client IP address:', ipAddress);
         console.log(req.headers)
         console.log(req.socket.remoteAddress)
-        console.log(req.connection.remoteAddress)
+        console.log(req.headers['x-forwarded-for'])
+        console.log(req.headers['cf-connecting-ip'])
+        console.log(req.headers['c-real-ip'])
         console.log(req.headers['user-agent'])
-        return user;
+        // return user;
+        return ipAddress
     }
 
     @Post("send-mail-to-resent-password")
@@ -56,6 +62,8 @@ export class LogInDevicesController {
     ) {
         return await this.LogInDevicesService.reSetPassword(data, token);
     }
+
+
 }
 
 
