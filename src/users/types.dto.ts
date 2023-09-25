@@ -1,5 +1,23 @@
 import { IsDate, IsEmail, IsEmpty, IsNotEmpty, IsNumber, IsOptional, IsPhoneNumber, IsString, IsStrongPassword, MinLength } from "class-validator";
 
+
+export class signInDto {
+    @IsNotEmpty()
+    @IsEmail()
+    @IsString()
+    email: string
+
+    @IsNotEmpty()
+    @IsString()
+    @IsStrongPassword()
+    password: string
+
+    @IsNotEmpty()
+    @IsString()
+    @IsStrongPassword()
+    confirmPassword: string
+}
+
 export class UserDataDto {
     @IsString()
     @IsNotEmpty()

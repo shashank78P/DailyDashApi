@@ -4,7 +4,9 @@ import { UpdateUserDto, UserDataDto, UserDataForSignIn, _idDto } from "./types.d
 
 @Controller('users')
 export class UsersController {
-    constructor(private readonly usersService: UsersService) { }
+    constructor(
+        private readonly usersService: UsersService,
+    ) { }
 
     @Post("/addUser")
     async createUser(

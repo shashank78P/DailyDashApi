@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post, Put, Query, Req, Res, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
-import { LogInDevicesService } from "./log-in-devices.service"
+import { LogInDetailsService } from "./log-in-details.service"
 import { UsersService } from "../users/users.service"
 import { UserDataForSignIn } from 'src/users/types.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -12,7 +12,7 @@ import { resetPasswordDto } from './types';
 @UsePipes(ValidationPipe)
 export class LogInDevicesController {
     constructor(
-        private readonly LogInDevicesService: LogInDevicesService,
+        private readonly LogInDevicesService: LogInDetailsService,
         private readonly UsersService: UsersService,
     ) { }
 
@@ -45,6 +45,13 @@ export class LogInDevicesController {
         console.log(req.headers['user-agent'])
         // return user;
         return ipAddress
+    }
+
+    @Post("/google-log-in-details")
+    async GoogleeLogIn(
+        @Body() body: any
+    ) {
+        return await this.LogInDevicesService.googleLogin(body);
     }
 
     @Post("send-mail-to-resent-password")

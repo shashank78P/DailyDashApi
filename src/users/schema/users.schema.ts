@@ -20,6 +20,9 @@ export class Users {
     @Prop()
     phone: String
 
+    @Prop()
+    profilePic: String
+
     @Prop({ required: true, unique: true })
     email: String
 
@@ -27,7 +30,7 @@ export class Users {
     password: String
 
     @Prop({ required: true, default: false })
-    isEmailVarified: Boolean
+    isEmailVerified: Boolean
 
     @Prop({ default: new Date() })
     createdAt: Date

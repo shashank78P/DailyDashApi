@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException, UsePipes, ValidationPipe } from '@nestjs/common';
-import { LogInDevices, LogInDevicesDocument } from './schema/log-in-details.schema';
+import { LogInDetails, LogInDocument, LogInDetailsSchema } from './schema/log-in-details.schema';
 import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Users, UsersDocument } from 'src/users/schema/users.schema';
@@ -8,15 +8,18 @@ import * as bcrypt from "bcryptjs";
 import { v4 as uuid } from "uuid";
 import { JwtService } from "@nestjs/jwt"
 import { MailServiceService } from 'src/mail-service/mail-service.service';
-import { resetPasswordDto } from './types';
+import { googleCredential, resetPasswordDto } from './types';
+import jwtDecode from 'jwt-decode';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 @UsePipes(ValidationPipe)
-export class LogInDevicesService {
+export class LogInDetailsService {
     constructor(
         private jwtService: JwtService,
         private mailService: MailServiceService,
-        @InjectModel(LogInDevices.name) private LogInDeviceModel: Model<LogInDevicesDocument>,
+        private userService: UsersService,
+        @InjectModel(LogInDetails.name) private LogInDetailsModel: Model<LogInDocument>,
         @InjectModel(Users.name) private UsersModel: Model<UsersDocument>,
     ) { }
 
@@ -35,30 +38,39 @@ export class LogInDevicesService {
         }
     }
 
-    async addDeviceDetails(userId, ip, logInId) {
+    async googleLogin(body: any) {
+        try {
+            console.log(body);
+            const { email, given_name, family_name, picture }: googleCredential = jwtDecode(body?.credential);
+            console.log(email, given_name, family_name, picture);
+            const result = await this.UsersModel.findOne({ email: email });
+
+            if (result == null) {
+                this.UsersModel.insertMany([{ email: email, firstName: given_name, lastName: family_name, profilePic: picture, isEmailVerified: true }])
+            }
+
+        } catch (err) {
+            new InternalServerErrorException(err.message);
+        }
+    }
+    async createNewLogInDetails(userId, logInId) {
         try {
             console.log("adding device details")
-            console.log(userId, ip, logInId)
-            if (!(userId && ip && logInId)) {
+
+            console.log(userId, logInId)
+
+            if (!(userId && logInId)) {
                 throw new BadRequestException("Invalid Credentials")
             }
-            let isOwner = false;
-            const ownerDevice = await this.LogInDeviceModel.findOne({ userId: new mongoose.Types.ObjectId(userId), })
 
-            console.log("ownerDevicem found => ", ownerDevice)
-            if (!ownerDevice) {
-                isOwner = true
-            }
-            const result = await this.LogInDeviceModel.insertMany([{
+            const result = await this.LogInDetailsModel.insertMany([{
                 userId: new mongoose.Types.ObjectId(userId),
-                ip,
                 logInId,
-                isOwner,
                 createdAt: new Date(),
                 updatedAt: new Date(),
             }])
 
-            console.log("after adding device details", result);
+            console.log("Login details are added ", result);
             return result;
         } catch (err) {
             throw new InternalServerErrorException(err?.message);
@@ -87,43 +99,20 @@ export class LogInDevicesService {
             }
             const logInId = await uuid()
 
-            // checking user has previously loged in with same ip
-            // if so update only login id
-            // else create a new document for it
-            const isUserDeviceAlreadyExist = await this.LogInDeviceModel.findOne({
-                userId: new mongoose.Types.ObjectId(isUserExist?._id),
-                ip,
-            });
-            console.log("isUser already exist", isUserDeviceAlreadyExist)
+            let result = await this.createNewLogInDetails(isUserExist?._id, logInId)
 
-            let deviceDetails;
-            if (isUserDeviceAlreadyExist) {
-                // same device then updating a login id
-                deviceDetails = await this.LogInDeviceModel.findOneAndUpdate({
-                    userId: new mongoose.Types.ObjectId(isUserExist?._id),
-                    ip
-                }, { set: { logInId } })
-            } else {
-                let result = await this.addDeviceDetails(isUserExist?._id, ip, logInId)
-                // mailService.sendMail();
-                let text = "";
-                let htmlData = "";
-                let subject = `Hello,\n\nWe noticed a login to your account from a new device (${UserDataForSignIn["deviceType"]}).
-                 If this was not you, please take immediate action to secure your account.`
-                this.mailService.sendMail(email, subject, text, htmlData, "");
-                console.log("result =>", result)
-                deviceDetails = result?.[0]
-            }
-            if (!deviceDetails?._id) {
-                throw new BadRequestException("device details")
-            }
-            console.log("deviceId: =>", deviceDetails._id);
+            let text = "";
+            let htmlData = '<a href="http://localhost:3000">Block</a>';
+            let subject = `<h1>Hello <strong>${isUserExist?.firstName + " " + isUserExist?.lastName}</strong>,\n\nWe noticed a login to your account from a new device. 
+                 If this was not you, please take immediate action to secure your account.</h1>`
+            this.mailService.sendMail(email, subject, text, htmlData, "");
+            console.log("result =>", result);
 
             // generating a token
-            const token = this.generateToken({ userId: isUserExist._id, loginId: logInId, deviceId: deviceDetails["_id"] }, "1d");
+            const token = this.generateToken({ userId: isUserExist._id, loginId: logInId }, "1d");
 
             // creating a cookie object
-            let cookieData = { ...deviceDetails, ...isUserExist }
+            let cookieData = { ...isUserExist }
             delete cookieData["password"];
             // res.user = cookieData
             res.cookie("authorization", `Bearer ${token}`, {
@@ -140,6 +129,14 @@ export class LogInDevicesService {
             throw new InternalServerErrorException(err?.message);
         }
     }
+
+    // async signUp(data: ) {
+    //     try {
+
+    //     } catch (err) {
+    //         new InternalServerErrorException(err?.message);
+    //     }
+    // }
 
     async sendMailToResentPassword(email: string, ip: string) {
         try {

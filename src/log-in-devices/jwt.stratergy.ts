@@ -5,7 +5,7 @@ import { JwtPayload } from "./types";
 import { InjectModel } from "@nestjs/mongoose";
 import { Users, UsersDocument } from "src/users/schema/users.schema";
 import mongoose, { Model } from "mongoose";
-import { LogInDevices, LogInDevicesDocument } from "./schema/log-in-details.schema";
+import { LogInDetails, LogInDocument } from "./schema/log-in-details.schema";
 
 const cookieExtractor = (req) => {
     let token = null
@@ -24,7 +24,7 @@ const cookieExtractor = (req) => {
 export class JwtStratery extends PassportStrategy(Strategy) {
     constructor(
         @InjectModel(Users.name) private UsersModel: Model<UsersDocument>,
-        @InjectModel(LogInDevices.name) private LogInDeviceModel: Model<LogInDevicesDocument>,
+        @InjectModel(LogInDetails.name) private LogInDeviceModel: Model<LogInDocument>,
     ) {
         super({
             // jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),

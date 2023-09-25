@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException, BadRequestException, NotFound
 import { Users, UsersDocument } from './schema/users.schema';
 import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { UpdateUserDto, UserDataDto, UserDataForSignIn, _idDto } from "./types.dto"
+import { UpdateUserDto, UserDataDto, UserDataForSignIn, _idDto, signInDto } from "./types.dto"
 import * as bcrypt from "bcryptjs"
 
 @Injectable()
@@ -42,7 +42,15 @@ export class UsersService {
         }
     }
 
-    async createUser(userData: UserDataDto) {
+    // async signIn(){
+    //     try{
+
+    //     }catch(err){
+    //         new InternalServerErrorException(err?.message);
+    //     }
+    // }
+
+    async createUser(userData: signInDto) {
         try {
             const { email, password, confirmPassword } = userData;
             const userHasAccountWithThisEmail = await this.UsersModel.findOne({ email });

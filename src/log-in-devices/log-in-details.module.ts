@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { LogInDevicesController } from './log-in-devices.controller';
+import { LogInDevicesController } from './log-in-details.controller';
 import { UsersService } from 'src/users/users.service';
-import { LogInDevicesService } from './log-in-devices.service';
+import { LogInDetailsService } from './log-in-details.service';
 import { UsersModule } from 'src/users/users.module';
-import { LogInDevicesSchema, LogInDevices } from './schema/log-in-details.schema';
+import { LogInDetailsSchema, LogInDetails } from './schema/log-in-details.schema';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Users, UsersSchema } from 'src/users/schema/users.schema';
 import { JwtModule } from "@nestjs/jwt"
@@ -17,7 +17,7 @@ import { MailServiceModule } from 'src/mail-service/mail-service.module';
       defaultStrategy: "jwt"
     }),
     // PassportModule,
-    MongooseModule.forFeature([{ name: LogInDevices.name, schema: LogInDevicesSchema }]),
+    MongooseModule.forFeature([{ name: LogInDetails.name, schema: LogInDetailsSchema }]),
     MongooseModule.forFeature([{ name: Users.name, schema: UsersSchema }]),
     UsersModule,
     MailServiceModule,
@@ -32,7 +32,7 @@ import { MailServiceModule } from 'src/mail-service/mail-service.module';
     )
   ],
   controllers: [LogInDevicesController],
-  providers: [LogInDevicesService, UsersService, JwtStratery],
+  providers: [LogInDetailsService, UsersService, JwtStratery],
   exports: [JwtStratery, PassportModule]
 })
-export class LogInDevicesModule { }
+export class LogInDetailsModule { }
