@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsStrongPassword, isString } from "class-validator"
+import { IsEmail, IsNotEmpty, IsString, IsStrongPassword, isString } from "class-validator"
 
 export enum deviceType {
     MOBILE = "MOBILE",
@@ -15,6 +15,16 @@ export interface JwtPayload {
 }
 
 
+export class googleCredentialDto {
+
+    @IsNotEmpty()
+    @IsString()
+    credential: string
+
+    @IsNotEmpty()
+    @IsString()
+    select_by: string
+}
 export interface googleCredential {
     email: string,
     given_name: string,

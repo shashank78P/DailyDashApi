@@ -38,24 +38,48 @@ export class LogInDetailsService {
         }
     }
 
-    async googleLogin(body: any) {
+    async googleLogin(body: any, res: Response, req: Request) {
         try {
             console.log(body);
+            console.log(req.headers);
             const { email, given_name, family_name, picture }: googleCredential = jwtDecode(body?.credential);
             console.log(email, given_name, family_name, picture);
-            const result = await this.UsersModel.findOne({ email: email });
+            let isUserExist = await this.UsersModel.findOne({ email: email });
 
-            if (result == null) {
-                this.UsersModel.insertMany([{ email: email, firstName: given_name, lastName: family_name, profilePic: picture, isEmailVerified: true }])
+            if (isUserExist == undefined || isUserExist == null) {
+                console.log(
+                    await this.UsersModel.insertMany([{
+                        email: email,
+                        firstName: given_name,
+                        lastName: family_name,
+                        profilePic: picture, isEmailVerified: false, isMediaSignUp: true,
+                        userAgent: req.headers['user-agent']
+                    }])
+                )
+                isUserExist = await this.UsersModel.findOne({ email: email });
+            }
+            const logInId = await uuid()
+
+            console.log("isUserExist");
+            console.log(isUserExist);
+
+            if (!isUserExist?._id) {
+                new BadRequestException("Invalid");
             }
 
+            const result = await this.createNewLogInDetails(isUserExist?._id.toString(), logInId, req)
+            // this.sendLogInAlert(isUserExist, email);
+            console.log("result =>", result);
+
+            return this.setCookieForWhileLogIn(isUserExist, logInId, res);
+
         } catch (err) {
-            new InternalServerErrorException(err.message);
+            new InternalServerErrorException(err?.message);
         }
     }
-    async createNewLogInDetails(userId, logInId) {
+    async createNewLogInDetails(userId, logInId, req) {
         try {
-            console.log("adding device details")
+            console.log("adding details")
 
             console.log(userId, logInId)
 
@@ -66,6 +90,7 @@ export class LogInDetailsService {
             const result = await this.LogInDetailsModel.insertMany([{
                 userId: new mongoose.Types.ObjectId(userId),
                 logInId,
+                userAgent: req.headers['user-agent'],
                 createdAt: new Date(),
                 updatedAt: new Date(),
             }])
@@ -77,8 +102,36 @@ export class LogInDetailsService {
         }
     }
 
+    // async sendLogInAlert(isUserExist, email) {
+    //     let text = "";
+    //     let htmlData = '<h1>Hello <strong>${isUserExist?.firstName + " " + isUserExist?.lastName}</strong>,\n\nWe noticed a login to your account from a new device.  If this was not you, please take immediate action to secure your account.</h1>';
+    //     let subject = `Security Alert!!!`
+    //     this.mailService.sendMail(email, subject, text, "Alert", { link: "https://github.com/shashank78P", firstName: isUserExist?.firstName, lastName: isUserExist?.lastName });
+
+    // }
+
+    async setCookieForWhileLogIn(isUserExist, logInId, res) {
+        // generating a token
+        const token = this.generateToken({ userId: isUserExist._id, loginId: logInId }, "1d");
+
+        const { _id, firstName, lastName, email } = isUserExist
+        // creating a cookie object
+        let cookieData = { _id, firstName, lastName, email, logInId };
+        delete cookieData["password"];
+        // res.user = cookieData
+        res.cookie("authorization", `Bearer ${token}`, {
+            httpOnly: true,
+            secure: true,
+            maxAge: Date.now() + 60 * 60,   //1hr
+            sameSite: "lax",
+            domain: "localhost",
+        })
+            .json(cookieData)
+        return "Log in sucessfull";
+    }
+
     // signing in with email and password
-    async signIn(res, userData: UserDataForSignIn, ip: string) {
+    async signIn(res, userData: UserDataForSignIn, req: Request) {
         try {
             const { password, email } = userData;
             if (!email || !password) {
@@ -99,32 +152,11 @@ export class LogInDetailsService {
             }
             const logInId = await uuid()
 
-            let result = await this.createNewLogInDetails(isUserExist?._id, logInId)
-
-            let text = "";
-            let htmlData = '<a href="http://localhost:3000">Block</a>';
-            let subject = `<h1>Hello <strong>${isUserExist?.firstName + " " + isUserExist?.lastName}</strong>,\n\nWe noticed a login to your account from a new device. 
-                 If this was not you, please take immediate action to secure your account.</h1>`
-            this.mailService.sendMail(email, subject, text, htmlData, "");
+            let result = await this.createNewLogInDetails(isUserExist?._id, logInId, req)
+            // this.sendLogInAlert(isUserExist, email);
             console.log("result =>", result);
 
-            // generating a token
-            const token = this.generateToken({ userId: isUserExist._id, loginId: logInId }, "1d");
-
-            // creating a cookie object
-            let cookieData = { ...isUserExist }
-            delete cookieData["password"];
-            // res.user = cookieData
-            res.cookie("authorization", `Bearer ${token}`, {
-                httpOnly: true,
-                secure: true,
-                maxAge: Date.now() + 60 * 60,
-                sameSite: "lax",
-                domain: "localhost"
-            })
-                .json(cookieData)
-            return "Log in sucessfull";
-
+            return this.setCookieForWhileLogIn(isUserExist, logInId, res);
         } catch (err) {
             throw new InternalServerErrorException(err?.message);
         }

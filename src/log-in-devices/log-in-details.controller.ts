@@ -6,7 +6,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from './currentUser.decorator';
 import * as http from "node:http"
 import { IsString } from 'class-validator';
-import { resetPasswordDto } from './types';
+import { googleCredential, googleCredentialDto, resetPasswordDto } from './types';
 
 @Controller('log-in-details')
 @UsePipes(ValidationPipe)
@@ -20,10 +20,10 @@ export class LogInDevicesController {
     async SignIn(
         @Body() userData: UserDataForSignIn,
         @Res() res,
-        @Query("ip") ip: string
+        @Req() req,
     ) {
         console.log(userData);
-        return this.LogInDevicesService.signIn(res, userData, ip);
+        return this.LogInDevicesService.signIn(res, userData, req);
     }
 
     // @UseGuards(AuthGuard())
@@ -36,22 +36,25 @@ export class LogInDevicesController {
             || req.socket.remoteAddress
             || req.headers['cf-connecting-ip']
             || req.headers['c-real-ip'];
-        console.log('Client IP address:', ipAddress);
-        console.log(req.headers)
-        console.log(req.socket.remoteAddress)
-        console.log(req.headers['x-forwarded-for'])
-        console.log(req.headers['cf-connecting-ip'])
-        console.log(req.headers['c-real-ip'])
-        console.log(req.headers['user-agent'])
+        // console.log('Client IP address:', ipAddress);
+        // console.log(req.headers)
+        // console.log(req.socket.remoteAddress)
+        // console.log(req.headers['x-forwarded-for'])
+        // console.log(req.headers['cf-connecting-ip'])
+        // console.log(req.headers['c-real-ip'])
+        // console.log(req.headers['user-agent'])
         // return user;
         return ipAddress
     }
 
     @Post("/google-log-in-details")
     async GoogleeLogIn(
-        @Body() body: any
+        @Body() body: googleCredentialDto,
+        @Res() res: any,
+        @Req() req: any,
+
     ) {
-        return await this.LogInDevicesService.googleLogin(body);
+        return await this.LogInDevicesService.googleLogin(body, res, req);
     }
 
     @Post("send-mail-to-resent-password")

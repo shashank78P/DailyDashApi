@@ -9,8 +9,11 @@ export class LogInDetails {
     @Prop({ type: mongoose.Types.ObjectId })
     userId: mongoose.Schema.Types.ObjectId
 
-    @Prop()
+    @Prop({ required: true })
     logInId: string
+
+    @Prop({ required: true })
+    userAgent: string
 
     @Prop()
     createdAt: Date

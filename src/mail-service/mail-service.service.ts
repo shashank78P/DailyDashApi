@@ -22,35 +22,39 @@ export class MailServiceService {
     // sgMail.setApiKey(process.env.SENDGRID_API_KEY)
     async sendMail(toEmail: string, subject: string, text: string, templateName: string, data: any) {
         try {
-            await ejs.renderFile(`${"src"}/mail-service/templates/password-reset.ejs`, data, (err, renderedHtml) => {
+            console.log(toEmail, subject, text);
+            await ejs.renderFile(`${"src"}/mail-service/templates/${templateName}.ejs`, data, (err, renderedHtml) => {
+
                 if (err) {
                     throw new InternalServerErrorException(err?.message)
                 }
-                console.log(renderedHtml)
-                sgMail.setApiKey("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")
+                sgMail.setApiKey("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")
                 const msg = {
                     to: toEmail,
                     from: 'dailydash155@gmail.com',
-                    subject: subject,
-                    text: text,
+                    subject: (subject) ? subject : "Subject",
+                    text: (text) ? text : "text",
                     html: renderedHtml,
                 }
 
 
-                console.log(renderedHtml)
+                console.log("renderedHtml")
                 sgMail
                     .send(msg)
                     .then(() => {
                         console.log('Email sent')
                     })
                     .catch((error) => {
-                        console.error(error)
+                        console.error("error?.message")
+                        console.error(error?.response?.body)
                         return error
                     })
+                console.log(renderedHtml)
             })
 
         } catch (err) {
-            throw new InternalServerErrorException(err?.message);
+            console.log(err)
+            throw new InternalServerErrorException(err);
         }
     }
 }

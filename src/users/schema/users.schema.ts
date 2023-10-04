@@ -23,14 +23,20 @@ export class Users {
     @Prop()
     profilePic: String
 
+    @Prop({ required: true })
+    userAgent: String
+
     @Prop({ required: true, unique: true })
     email: String
 
-    @Prop({ required: true })
+    @Prop()
     password: String
 
     @Prop({ required: true, default: false })
     isEmailVerified: Boolean
+
+    @Prop({ required: true, default: false })
+    isMediaSignUp: Boolean
 
     @Prop({ default: new Date() })
     createdAt: Date

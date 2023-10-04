@@ -42,15 +42,7 @@ export class UsersService {
         }
     }
 
-    // async signIn(){
-    //     try{
-
-    //     }catch(err){
-    //         new InternalServerErrorException(err?.message);
-    //     }
-    // }
-
-    async createUser(userData: signInDto) {
+    async createUser(userData: signInDto, req: Request) {
         try {
             const { email, password, confirmPassword } = userData;
             const userHasAccountWithThisEmail = await this.UsersModel.findOne({ email });
@@ -62,6 +54,8 @@ export class UsersService {
             }
             console.log(userData);
             userData.password = await bcrypt.hash(userData.password.toString(), 12)
+            userData["userAgent"] = req.headers['user-agent'];
+
             const user = await this.UsersModel.insertMany([userData]);
             return user
         } catch (err) {
