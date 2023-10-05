@@ -37,6 +37,12 @@ export class Users {
 
     @Prop({ required: true, default: false })
     isMediaSignUp: Boolean
+    
+    @Prop({ required: false })
+    passwordResetId : string
+    
+    @Prop({ required: false ,  default : new Date()})
+    passwordResetUpdatedAt :Date
 
     @Prop({ default: new Date() })
     createdAt: Date

@@ -33,8 +33,6 @@ export interface googleCredential {
 }
 
 export class resetPasswordDto {
-    @IsEmail()
-    email: string
 
     @IsStrongPassword()
     password: string
@@ -43,5 +41,17 @@ export class resetPasswordDto {
     confirmPassword: string
 
     @IsString()
-    ip: string
+    token: string
+}
+
+export class BlockLogInDevicesDto {
+
+    @IsStrongPassword()
+    password: string
+    
+    @IsString()
+    logInId: string
+
+    @IsEmail()
+    email: string
 }

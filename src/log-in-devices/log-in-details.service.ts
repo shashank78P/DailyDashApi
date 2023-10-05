@@ -3,12 +3,12 @@ import { LogInDetails, LogInDocument, LogInDetailsSchema } from './schema/log-in
 import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Users, UsersDocument } from 'src/users/schema/users.schema';
-import { UserDataForSignIn } from 'src/users/types.dto';
+import { UserDataForLoginIn, signInDto } from 'src/users/types.dto';
 import * as bcrypt from "bcryptjs";
 import { v4 as uuid } from "uuid";
 import { JwtService } from "@nestjs/jwt"
 import { MailServiceService } from 'src/mail-service/mail-service.service';
-import { googleCredential, resetPasswordDto } from './types';
+import { BlockLogInDevicesDto, googleCredential, resetPasswordDto } from './types';
 import jwtDecode from 'jwt-decode';
 import { UsersService } from 'src/users/users.service';
 
@@ -29,9 +29,9 @@ export class LogInDetailsService {
                 payload,
                 {
                     expiresIn: expire,
+                    secret: "DailyDash"
                 }
             )
-            console.log("token=>", token);
             return token
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
@@ -40,49 +40,69 @@ export class LogInDetailsService {
 
     async googleLogin(body: any, res: Response, req: Request) {
         try {
-            console.log(body);
-            console.log(req.headers);
             const { email, given_name, family_name, picture }: googleCredential = jwtDecode(body?.credential);
-            console.log(email, given_name, family_name, picture);
             let isUserExist = await this.UsersModel.findOne({ email: email });
 
             if (isUserExist == undefined || isUserExist == null) {
-                console.log(
-                    await this.UsersModel.insertMany([{
-                        email: email,
-                        firstName: given_name,
-                        lastName: family_name,
-                        profilePic: picture, isEmailVerified: false, isMediaSignUp: true,
-                        userAgent: req.headers['user-agent']
-                    }])
-                )
+                await this.UsersModel.insertMany([{
+                    email: email,
+                    firstName: given_name,
+                    lastName: family_name,
+                    profilePic: picture, isEmailVerified: false, isMediaSignUp: true,
+                    userAgent: req.headers['user-agent']
+                }])
                 isUserExist = await this.UsersModel.findOne({ email: email });
             }
             const logInId = await uuid()
 
-            console.log("isUserExist");
-            console.log(isUserExist);
 
             if (!isUserExist?._id) {
                 new BadRequestException("Invalid");
             }
 
             const result = await this.createNewLogInDetails(isUserExist?._id.toString(), logInId, req)
-            // this.sendLogInAlert(isUserExist, email);
-            console.log("result =>", result);
-
+            this.sendLogInAlert(isUserExist, email, logInId);
+            if (!isUserExist?.password) {
+                this.sendMailToResetPassword(email);
+            }
             return this.setCookieForWhileLogIn(isUserExist, logInId, res);
 
         } catch (err) {
             new InternalServerErrorException(err?.message);
         }
     }
+
+    async SignIn(body: signInDto, res: Response, req: Request) {
+        try {
+            const { email , firstName , lastName } = body;
+            console.log(email)
+            
+            let isUserExist = await this.UsersModel.findOne({ email: email });
+            console.log(isUserExist)
+            
+            if (!isUserExist) {
+                console.log("isUserExist")
+                await this.UsersModel.insertMany([{
+                    email: email,
+                    firstName,
+                    lastName,
+                    isEmailVerified: false,
+                    isMediaSignUp: false,
+                    userAgent: req.headers['user-agent']
+                }])
+    
+                await this.sendMailToResetPassword(email);
+                return "Account created Successfully!!!. Password re-set link has been shared to this email."
+            }
+            console.log("isUserExist===")
+            throw new BadRequestException("Account already exist, Please LogIn!!");
+        } catch (err) {
+            new InternalServerErrorException(err?.message);
+        }
+    }
+
     async createNewLogInDetails(userId, logInId, req) {
         try {
-            console.log("adding details")
-
-            console.log(userId, logInId)
-
             if (!(userId && logInId)) {
                 throw new BadRequestException("Invalid Credentials")
             }
@@ -95,28 +115,27 @@ export class LogInDetailsService {
                 updatedAt: new Date(),
             }])
 
-            console.log("Login details are added ", result);
             return result;
         } catch (err) {
             throw new InternalServerErrorException(err?.message);
         }
     }
 
-    // async sendLogInAlert(isUserExist, email) {
-    //     let text = "";
-    //     let htmlData = '<h1>Hello <strong>${isUserExist?.firstName + " " + isUserExist?.lastName}</strong>,\n\nWe noticed a login to your account from a new device.  If this was not you, please take immediate action to secure your account.</h1>';
-    //     let subject = `Security Alert!!!`
-    //     this.mailService.sendMail(email, subject, text, "Alert", { link: "https://github.com/shashank78P", firstName: isUserExist?.firstName, lastName: isUserExist?.lastName });
+    async sendLogInAlert(isUserExist, email, logInId) {
+        let text = "";
+        let htmlData = '<h1>Hello <strong>${isUserExist?.firstName + " " + isUserExist?.lastName}</strong>,\n\nWe noticed a login to your account from a new device.  If this was not you, please take immediate action to secure your account.</h1>';
+        let subject = `Security Alert!!!`
+        this.mailService.sendMail(email, subject, text, "Alert", { link: `${"http://localhost:3000/block?email=" + email + "&logInId=" + logInId}`, firstName: isUserExist?.firstName, lastName: isUserExist?.lastName });
 
-    // }
+    }
 
     async setCookieForWhileLogIn(isUserExist, logInId, res) {
         // generating a token
         const token = this.generateToken({ userId: isUserExist._id, loginId: logInId }, "1d");
 
-        const { _id, firstName, lastName, email } = isUserExist
+        const { _id, firstName, lastName, email, isEmailVerified } = isUserExist
         // creating a cookie object
-        let cookieData = { _id, firstName, lastName, email, logInId };
+        let cookieData = { _id, firstName, lastName, email, logInId, isEmailVerified };
         delete cookieData["password"];
         // res.user = cookieData
         res.cookie("authorization", `Bearer ${token}`, {
@@ -131,7 +150,7 @@ export class LogInDetailsService {
     }
 
     // signing in with email and password
-    async signIn(res, userData: UserDataForSignIn, req: Request) {
+    async logIn(userData: UserDataForLoginIn, res: Response, req: Request) {
         try {
             const { password, email } = userData;
             if (!email || !password) {
@@ -154,9 +173,9 @@ export class LogInDetailsService {
 
             let result = await this.createNewLogInDetails(isUserExist?._id, logInId, req)
             // this.sendLogInAlert(isUserExist, email);
-            console.log("result =>", result);
 
-            return this.setCookieForWhileLogIn(isUserExist, logInId, res);
+            this.setCookieForWhileLogIn(isUserExist, logInId, res);
+            return "Log in Sucessfull";
         } catch (err) {
             throw new InternalServerErrorException(err?.message);
         }
@@ -170,9 +189,9 @@ export class LogInDetailsService {
     //     }
     // }
 
-    async sendMailToResentPassword(email: string, ip: string) {
+    async sendMailToResetPassword(email: string) {
         try {
-            if (!(email && ip)) {
+            if (!(email)) {
                 throw new BadRequestException("requirements are not satisfied")
             }
             const isUserExist = await this.UsersModel.findOne({ email });
@@ -180,16 +199,18 @@ export class LogInDetailsService {
             if (!isUserExist) {
                 throw new NotFoundException()
             }
+            let passwordResetId: String = await uuid();
+            let res = await this.UsersModel.updateOne({ _id: new mongoose.Types.ObjectId(isUserExist._id) }, { $set: { passwordResetId: passwordResetId, passwordResetUpdatedAt: new Date() } })
 
-            const token = await this.generateToken({ userId: isUserExist?._id }, "15m");
-            let Link = `http://localhost:3001/reset-password?token=${token}`
+            const token = await this.generateToken({ userId: isUserExist?._id, passwordResetId }, "15m",);
+            let Link = `http://localhost:3000/reset-password?token=${token}`
 
             await this.mailService.sendMail(
                 email,
                 "Response to re-set password",
-                `This email is to re-set a password \n\nclick below link to re-set password \n\n${Link}`,
-                "password-reset.ejs",
-                { link: Link }
+                "",
+                "password-reset",
+                { link: Link, email }
             )
             return "Mail send sucessfully"
         } catch (err) {
@@ -197,36 +218,66 @@ export class LogInDetailsService {
         }
     }
 
-    async reSetPassword(data: resetPasswordDto, token: string) {
+    async reSetPassword(data: resetPasswordDto) {
         try {
-            let jwtDecodedData: any = await this.jwtService.decode(token);
-            console.log(jwtDecodedData)
-            let { userId } = jwtDecodedData
-            let { email, confirmPassword, password, ip } = data
-            if (!(email && ip && confirmPassword && password)) {
+            let { confirmPassword, password, token } = data
+            console.log("jwtDecodedData");
+            let jwtDecodedData: any = await this.jwtService.verifyAsync(token, { secret: "DailyDash" });
+            // let jwtDecodedData: any = await this.jwtService.decode(token);
+            console.log(jwtDecodedData);
+            let { userId, passwordResetId } = jwtDecodedData
+            if (!(confirmPassword && password)) {
                 throw new BadRequestException("requirements are not satisfied")
             }
 
             if (password !== confirmPassword) {
                 throw new BadRequestException("password and confirm password are mis-match ")
             }
-            console.log(userId, password, confirmPassword, ip, email)
-            const isUserExist = await this.UsersModel.findOne({ email, _id: userId });
+            const isUserExist = await this.UsersModel.findOne({ _id: new mongoose.Types.ObjectId(userId), passwordResetId });
 
-            console.log(isUserExist)
 
             if (!isUserExist) {
+                console.log("not exist");
                 throw new NotFoundException()
             }
 
             password = await bcrypt.hash(password.toString(), 12)
-            const user = await this.UsersModel.findOneAndUpdate({ email }, { password });
+            const user = await this.UsersModel.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(userId) }, { password, passwordResetId: "", isEmailVerified: true, updatedAt: new Date() });
             if (!user) {
                 throw new BadRequestException("Failed to re-set password")
             }
-            return user
+            await this.UsersModel.deleteMany({ userId: new mongoose.Types.ObjectId(userId) });
+            return "Password reset successfull"
         } catch (err) {
             throw new InternalServerErrorException(err?.message);
+        }
+    }
+
+    async blockLogInDevice(data: BlockLogInDevicesDto) {
+        try {
+            const isLogInIdExist = await this.LogInDetailsModel.findOne({ logInId: data?.logInId });
+            if (!isLogInIdExist) {
+                throw new NotFoundException("LogInId not Found")
+            }
+            const isUserExist = await this.UsersModel.findOne({ email: data?.email });
+
+            if (!isUserExist) {
+                throw new NotFoundException()
+            }
+            const isPasswordMatched = await bcrypt.compare(data?.password, isUserExist.password)
+
+            if (!isPasswordMatched) {
+                throw new InternalServerErrorException("Invalid Credentials");
+            }
+
+            const isDeleted = await this.LogInDetailsModel.deleteOne({ logInId: data?.logInId })
+
+            if (isDeleted) {
+                return "Blocked Successfully"
+            }
+            throw new NotFoundException();
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
         }
     }
 }

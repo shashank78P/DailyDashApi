@@ -1,12 +1,12 @@
-import { Body, Controller, Get, Post, Put, Query, Req, Res, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Put, Query, Req, Res, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { LogInDetailsService } from "./log-in-details.service"
 import { UsersService } from "../users/users.service"
-import { UserDataForSignIn } from 'src/users/types.dto';
+import { UserDataForLoginIn, signInDto } from 'src/users/types.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from './currentUser.decorator';
 import * as http from "node:http"
 import { IsString } from 'class-validator';
-import { googleCredential, googleCredentialDto, resetPasswordDto } from './types';
+import { BlockLogInDevicesDto, googleCredential, googleCredentialDto, resetPasswordDto } from './types';
 
 @Controller('log-in-details')
 @UsePipes(ValidationPipe)
@@ -17,14 +17,24 @@ export class LogInDevicesController {
     ) { }
 
     @Post("/login")
-    async SignIn(
-        @Body() userData: UserDataForSignIn,
+    async LogIn(
+        @Body() userData: UserDataForLoginIn,
         @Res() res,
         @Req() req,
     ) {
-        console.log(userData);
-        return this.LogInDevicesService.signIn(res, userData, req);
+        return await this.LogInDevicesService.logIn(userData,res, req);
     }
+    
+    @Post("/signin")
+    async SignIn(
+        @Body() userData: signInDto,
+        @Res() res,
+        @Req() req,
+    ) {
+        return await this.LogInDevicesService.SignIn(userData,res, req);
+    }
+    
+    
 
     // @UseGuards(AuthGuard())
     @Get("/")
@@ -60,17 +70,22 @@ export class LogInDevicesController {
     @Post("send-mail-to-resent-password")
     async resendPassword(
         @Query("email") email: string,
-        @Query("ip") ip: string,
     ) {
-        return await this.LogInDevicesService.sendMailToResentPassword(email, ip)
+        return await this.LogInDevicesService.sendMailToResetPassword(email)
     }
 
     @Put("reset-password")
     async resetPassword(
-        @Query("token") token: string,
         @Body() data: resetPasswordDto
     ) {
-        return await this.LogInDevicesService.reSetPassword(data, token);
+        return await this.LogInDevicesService.reSetPassword(data);
+    }
+    
+    @Put("block-log-in-device")
+    async blockLogInDevices(
+        @Body() data: BlockLogInDevicesDto
+    ) {
+        return await this.LogInDevicesService.blockLogInDevice(data);
     }
 
 

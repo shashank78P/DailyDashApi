@@ -9,13 +9,11 @@ export class signInDto {
 
     @IsNotEmpty()
     @IsString()
-    @IsStrongPassword()
-    password: string
+    firstName: string
 
     @IsNotEmpty()
     @IsString()
-    @IsStrongPassword()
-    confirmPassword: string
+    lastName: string
 }
 
 export class UserDataDto {
@@ -82,7 +80,26 @@ export class UpdateUserDto {
     email: string
 }
 
-export class UserDataForSignIn {
+export class SignUp {
+    @IsEmail()
+    @IsNotEmpty()
+    email: string
+
+    @IsString()
+    @IsNotEmpty()
+    @IsStrongPassword()
+    password: string
+    
+    
+    @IsString()
+    @IsNotEmpty()
+    @IsStrongPassword()
+    confirmPassword: string
+
+    
+}
+
+export class UserDataForLoginIn {
     @IsEmail()
     @IsNotEmpty()
     email: string
