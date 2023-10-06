@@ -44,6 +44,12 @@ export class Users {
     @Prop({ required: false ,  default : new Date()})
     passwordResetUpdatedAt :Date
 
+    @Prop({ required: true })
+    os: string
+    
+    @Prop({ required: true })
+    browser: string
+
     @Prop({ default: new Date() })
     createdAt: Date
 

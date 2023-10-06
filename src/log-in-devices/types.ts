@@ -23,6 +23,14 @@ export class googleCredentialDto {
 
     @IsNotEmpty()
     @IsString()
+    os: string
+
+    @IsNotEmpty()
+    @IsString()
+    browser: string
+
+    @IsNotEmpty()
+    @IsString()
     select_by: string
 }
 export interface googleCredential {
@@ -52,6 +60,11 @@ export class BlockLogInDevicesDto {
     @IsString()
     logInId: string
 
+    @IsEmail()
+    email: string
+}
+
+export class forgetpasswordDto{
     @IsEmail()
     email: string
 }

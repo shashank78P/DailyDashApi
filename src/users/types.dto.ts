@@ -14,6 +14,14 @@ export class signInDto {
     @IsNotEmpty()
     @IsString()
     lastName: string
+
+    @IsNotEmpty()
+    @IsString()
+    os: string
+
+    @IsNotEmpty()
+    @IsString()
+    browser: string
 }
 
 export class UserDataDto {
@@ -107,6 +115,14 @@ export class UserDataForLoginIn {
     @IsString()
     @IsNotEmpty()
     password: string
+
+    @IsNotEmpty()
+    @IsString()
+    os: string
+
+    @IsNotEmpty()
+    @IsString()
+    browser: string
 
     // @IsString()
     // @IsNotEmpty()

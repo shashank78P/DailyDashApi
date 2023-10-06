@@ -24,9 +24,9 @@ import { MailServiceModule } from 'src/mail-service/mail-service.module';
 
     JwtModule.register(
       {
-        secret: "DailyDashSceret",
+        secret: "DailyDash51",
         signOptions: {
-          expiresIn: 3600,
+          expiresIn: "1d",
         }
       }
     )

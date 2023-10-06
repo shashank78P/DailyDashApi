@@ -14,6 +14,12 @@ export class LogInDetails {
 
     @Prop({ required: true })
     userAgent: string
+    
+    @Prop({ required: true })
+    os: string
+    
+    @Prop({ required: true })
+    browser: string
 
     @Prop()
     createdAt: Date

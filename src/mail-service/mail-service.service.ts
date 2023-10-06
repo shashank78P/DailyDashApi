@@ -43,6 +43,7 @@ export class MailServiceService {
                     .send(msg)
                     .then(() => {
                         console.log('Email sent')
+                        return "Mail send successfully";
                     })
                     .catch((error) => {
                         console.error("error?.message")

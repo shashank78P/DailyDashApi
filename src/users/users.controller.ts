@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Post, Put, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto, UserDataDto, _idDto } from "./types.dto"
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('users')
 export class UsersController {
@@ -17,6 +18,13 @@ export class UsersController {
         return this.usersService.createUser(userData, req);
     }
 
+    @UseGuards(AuthGuard())
+    @Get("/authme")
+    async AuthMe(
+        @Query("email") email: string
+    ) {
+        return this.usersService.getUserByEmail(email);
+    }
     @Get("/getUserByEmail")
     async getUserByEmail(
         @Query("email") email: string

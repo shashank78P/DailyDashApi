@@ -6,7 +6,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from './currentUser.decorator';
 import * as http from "node:http"
 import { IsString } from 'class-validator';
-import { BlockLogInDevicesDto, googleCredential, googleCredentialDto, resetPasswordDto } from './types';
+import { BlockLogInDevicesDto, forgetpasswordDto, googleCredential, googleCredentialDto, resetPasswordDto } from './types';
 
 @Controller('log-in-details')
 @UsePipes(ValidationPipe)
@@ -22,7 +22,7 @@ export class LogInDevicesController {
         @Res() res,
         @Req() req,
     ) {
-        return await this.LogInDevicesService.logIn(userData,res, req);
+        return this.LogInDevicesService.logIn(userData,res, req);
     }
     
     @Post("/signin")
@@ -31,7 +31,9 @@ export class LogInDevicesController {
         @Res() res,
         @Req() req,
     ) {
-        return await this.LogInDevicesService.SignIn(userData,res, req);
+        res.send(
+            await this.LogInDevicesService.Signin(userData,res, req)
+            );
     }
     
     
@@ -84,8 +86,16 @@ export class LogInDevicesController {
     @Put("block-log-in-device")
     async blockLogInDevices(
         @Body() data: BlockLogInDevicesDto
-    ) {
-        return await this.LogInDevicesService.blockLogInDevice(data);
+        ) {
+            return await this.LogInDevicesService.blockLogInDevice(data);
+        }
+        
+    @Post("/forget-password")
+    async forgetPassword(
+        @Body() data: forgetpasswordDto
+    ){
+        const {email} = data;
+        return await this.LogInDevicesService.sendMailToResetPassword(email)
     }
 
 
