@@ -10,11 +10,10 @@ import { UsersModule } from './users/users.module';
 import { LogInDetailsModule } from './log-in-devices/log-in-details.module';
 import { MailServiceModule } from './mail-service/mail-service.module';
 import { FileSystemModule } from './file-system/file-system.module';
-import { SocketModule } from './socket/socket.module';
-import { PollsGateway } from './socket/polls.gateway';
-import { SocketController } from './socket/socket.controller';
-import { SocketService } from './socket/socket.service';
+import { PollsGateway } from './chats/polls.gateway';
 import { corsMiddleware } from './middleware/cors.middleware'; // Import the middleware
+import { ChatsModule } from './chats/chats.module';
+import { JwtService } from '@nestjs/jwt';
 
 // password
 // KTnUhKukTZ9n1fhf
@@ -30,10 +29,10 @@ import { corsMiddleware } from './middleware/cors.middleware'; // Import the mid
     LogInDetailsModule,
     MailServiceModule,
     FileSystemModule,
-    SocketModule
+    ChatsModule,
   ],
-  controllers: [AppController, TaskManagementController, SocketController],
-  providers: [AppService, TaskManagementService, PollsGateway, SocketService, corsMiddleware],
+  controllers: [AppController, TaskManagementController],
+  providers: [AppService, TaskManagementService, PollsGateway, corsMiddleware ,JwtService],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {

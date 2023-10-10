@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Put, Query, Req, UseGuards } from '@nestjs
 import { UsersService } from './users.service';
 import { UpdateUserDto, UserDataDto, _idDto } from "./types.dto"
 import { AuthGuard } from '@nestjs/passport';
+import { CurrentUser } from 'src/log-in-devices/currentUser.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -21,9 +22,9 @@ export class UsersController {
     @UseGuards(AuthGuard())
     @Get("/authme")
     async AuthMe(
-        @Query("email") email: string
+        @CurrentUser() user : any
     ) {
-        return this.usersService.getUserByEmail(email);
+        return user;
     }
     @Get("/getUserByEmail")
     async getUserByEmail(
