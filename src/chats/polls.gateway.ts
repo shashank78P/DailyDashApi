@@ -122,13 +122,26 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
         this.io.emit("hello", obj);
     }
 
-    @SubscribeMessage('sendMessage')
-    async handleSendMessage(client: Socket, payload: any): Promise<void> {
+    // inividuals chats handler
+    @SubscribeMessage('INDIVIDUAL')
+    async handleIndividualSendMessage(client: Socket, payload: any): Promise<void> {
         const { userId } = await this.verifyToken(client)
         // console.log(client?.handshake?.auth);
         console.log(payload)
         const newMessage = await this.ChatsService.createMessage(payload);
         
         this.server.emit(payload?.belongsTo,newMessage?.[0])
+        this.server.emit(`${payload?.to}ChatNotification`,{type : "chat"})
+    }
+    
+    @SubscribeMessage('GROUP')
+    async handleGroupSendMessage(client: Socket, payload: any): Promise<void> {
+        const { userId } = await this.verifyToken(client)
+        // console.log(client?.handshake?.auth);
+        console.log(payload)
+        const newMessage = await this.ChatsService.createGroupMessage(payload);
+        
+        this.server.emit(payload?.belongsTo,newMessage?.[0])
+        this.server.emit(`${payload?.belongsTo}ChatNotification`,{type : "chat"})
     }
 }

@@ -5,7 +5,7 @@ export type ChatInitiatedDocument = ChatInitiated & Document
 
 @Schema({ timestamps : true})
 export class ChatInitiated{
-    @Prop({type : mongoose.Types.ObjectId})
+    @Prop({type : mongoose.Types.ObjectId , required : true})
     from : mongoose.Schema.Types.ObjectId
 
     @Prop({type : mongoose.Types.ObjectId})
@@ -22,6 +22,18 @@ export class ChatInitiated{
     
     @Prop({type : Date , default : Date.now()})
     updatedAt : Date
+    
+    @Prop({type : String })
+    groupName : String
+    
+    @Prop({type : String })
+    type : String
+    
+    @Prop({type : String })
+    description : String
+    
+    @Prop({type : String })
+    groupProfilePic : String
 }
 
 export const ChatInitiatedSchema = SchemaFactory.createForClass(ChatInitiated);

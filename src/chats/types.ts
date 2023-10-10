@@ -34,5 +34,21 @@ export class addChatDto{
     @IsNotEmpty()
     @IsString()
     to :string
+    
+}
 
+export class createGroupDto{
+    @IsNotEmpty()
+    @IsString()
+    groupName :string
+    
+    @IsNotEmpty()
+    users :string[]
+
+}
+
+export enum role{
+    ADMIN = "ADMIN",
+    CO_ADMIN = "CO_ADMIN",
+    MEMBER = "MEMBER"
 }

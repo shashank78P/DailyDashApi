@@ -9,6 +9,7 @@ import { PassportModule } from '@nestjs/passport';
 import { Users, UsersSchema } from 'src/users/schema/users.schema';
 import { UsersModule } from 'src/users/users.module';
 import { ChatInitiated, ChatInitiatedSchema } from './schema/ChatInitiated.schema';
+import { GroupMember, GroupMemeberSchema } from './schema/GroupMember.scheme';
 
 @Module({
   imports : [
@@ -18,6 +19,7 @@ import { ChatInitiated, ChatInitiatedSchema } from './schema/ChatInitiated.schem
     UsersModule,
     MongooseModule.forFeature([{ name: chats.name, schema: chatsSchema }]),
     MongooseModule.forFeature([{ name: ChatInitiated.name, schema: ChatInitiatedSchema }]),
+    MongooseModule.forFeature([{ name: GroupMember.name, schema: GroupMemeberSchema }]),
   ],
   controllers: [ChatsController],
   providers: [ChatsService],
