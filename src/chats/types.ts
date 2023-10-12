@@ -1,54 +1,78 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsEmpty, IsNotEmpty, IsOptional, IsString } from "class-validator";
 
-export class findUserToInitialChatDto{
+export class findUserToInitialChatDto {
     @IsString()
     @IsNotEmpty()
-    email : string
+    email: string
 }
 
-export class getAllChatDto{
+export class getAllChatDto {
     @IsNotEmpty()
     @IsString()
-    belongsTo :string
+    belongsTo: string
 
     @IsNotEmpty()
-    skip:string
+    skip: string
 
     @IsNotEmpty()
-    limit :string
+    limit: string
 }
 
-export class addChatDto{
+export class addChatDto {
     @IsNotEmpty()
     @IsString()
-    belongsTo :string
+    belongsTo: string
 
     @IsNotEmpty()
     @IsString()
-    message :string
-    
-    @IsNotEmpty()
-    @IsString()
-    userId :string
-    
-    @IsNotEmpty()
-    @IsString()
-    to :string
-    
-}
+    message: string
 
-export class createGroupDto{
     @IsNotEmpty()
     @IsString()
-    groupName :string
-    
+    userId: string
+
     @IsNotEmpty()
-    users :string[]
+    @IsString()
+    to: string
 
 }
 
-export enum role{
+export class createGroupDto {
+    @IsNotEmpty()
+    @IsString()
+    groupName: string
+
+    @IsNotEmpty()
+    users: string[]
+
+}
+
+export enum role {
     ADMIN = "ADMIN",
     CO_ADMIN = "CO_ADMIN",
     MEMBER = "MEMBER"
+}
+
+export class editGroupNameDescDto {
+    @IsString()
+    @IsOptional()
+    description: string
+
+    @IsString()
+    @IsOptional()
+    groupName: string
+
+    @IsString()
+    @IsOptional()
+    belongsTo: string
+}
+
+export class FileBodyBto {
+    @IsNotEmpty()
+    @IsString()
+    url: string
+
+    @IsNotEmpty()
+    @IsString()
+    FileId: string
 }

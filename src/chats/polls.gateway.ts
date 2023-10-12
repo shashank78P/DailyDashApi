@@ -131,7 +131,7 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
         const newMessage = await this.ChatsService.createMessage(payload);
         
         this.server.emit(payload?.belongsTo,newMessage?.[0])
-        this.server.emit(`${payload?.to}ChatNotification`,{type : "chat"})
+        this.server.emit(`${payload?.to}ChatNotification`,{type : "CHAT"});
     }
     
     @SubscribeMessage('GROUP')
@@ -142,6 +142,6 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
         const newMessage = await this.ChatsService.createGroupMessage(payload);
         
         this.server.emit(payload?.belongsTo,newMessage?.[0])
-        this.server.emit(`${payload?.belongsTo}ChatNotification`,{type : "chat"})
+        this.server.emit(`${payload?.belongsTo}ChatNotification`,{type : "GROUPCHAT"})
     }
 }

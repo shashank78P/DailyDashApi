@@ -28,14 +28,11 @@ export class FileSystemService {
     constructor() {
 
         this.oauth2Client = new google.auth.OAuth2({
-            // clientId: "168934949203-4nfd5hoffeqproi3uc6gvr5tret70te2.apps.googleusercontent.com",
-            clientId: "369956568963-cbac9g1clg9ib486o8k7ggnqf6ia4m26.apps.googleusercontent.com",
-            clientSecret: "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",
-            // clientSecret: "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",
+            clientId: "369956568963-c8tem7646hp3je8k9q5q6g8etudppui9.apps.googleusercontent.com",
+            clientSecret: "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",
             redirectUri: "https://developers.google.com/oauthplayground",
         })
-        // this.oauth2Client.setCredentials({ refresh_token: "1//04HxFhC0iZRa-CgYIARAAGAQSNwF-L9IrPs9Bq9blYc4EuthxGdYJTWZGATZUCc-shW4rxcOp68w9_2IRyRj1a-IxfdflEdCoAwI" })
-        this.oauth2Client.setCredentials({ refresh_token: "1//04H7zUFnWrDuxCgYIARAAGAQSNwF-L9Irn9XFxFNTbASfe4nfW8ra-f-5i7wiHpboCpiSlA3wPF94tJqjKDOe0Hm6lBE0MbgwBN8" })
+        this.oauth2Client.setCredentials({ refresh_token: "1//04vN74GOIIp3NCgYIARAAGAQSNwF-L9Ir2N_Q6PXquhuyVCwDFdeWOeGslW7AYJHt-P5tF4QhbIFclAN6wggLkJcqmzuSUnaE1tc" })
 
         this.drive = google.drive({
             version: 'v3',
@@ -43,12 +40,13 @@ export class FileSystemService {
         }
         )
     }
-    async uploadFile(originalname, mimetype, size, fileName) {
+    async uploadFile(file) {
         try {
-            console.log(originalname, mimetype, size, fileName);
+            console.log(file)
+            const { mimetype, filename } = file;
             const response = await this.drive.files.create({
                 requestBody: {
-                    name: fileName,
+                    name: filename,
                     mimeType: mimetype,
                 },
 
@@ -56,10 +54,7 @@ export class FileSystemService {
                 media: {
                     parent: "userProfile",
                     mimeType: mimetype,
-                    body: fs.createReadStream(`./uploads/${fileName}`)
-                    // fs.createReadStream("./uploads/cb58a10521b7810d793410b3c9646b8b7a.webp")
-                    // fileData
-
+                    body: fs.createReadStream(`./uploads/${filename}`)
                 }
             })
             const { id, mimeType, name } = response?.["data"];
@@ -75,9 +70,26 @@ export class FileSystemService {
             await fs.promises.unlink(filePath);
             const result = await this.FileSystemModel.insertMany([{ FileId: id, mimeType, FileName: name }])
             console.log(result);
-            return response;
+            return result;
         } catch (err) {
             console.log(err?.message);
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async uploadFileAndGetUrl(file) {
+        try {
+            const result = await this.uploadFile(file);
+
+            const fileId : String = result?.[0]?.FileId
+            if (fileId) {
+                await this.generatePublicUrl(fileId)
+                const link = await this.getFileLinkById(fileId)
+                return { ...link , fileId}
+            } else {
+                throw new BadRequestException("error in upload")
+            }
+        } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }
     }
@@ -112,7 +124,7 @@ export class FileSystemService {
         }
     }
 
-    async generatePublicUrl(fileId) {
+    async generatePublicUrl(fileId : String) {
         try {
             console.log(fileId);
 
@@ -143,7 +155,7 @@ export class FileSystemService {
             })
 
             console.log(result.data);
-            return result;
+            return result?.data;
 
         } catch (err) {
             throw new InternalServerErrorException(err?.message)

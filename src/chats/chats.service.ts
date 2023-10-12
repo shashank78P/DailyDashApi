@@ -4,9 +4,10 @@ import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Users, UsersDocument } from 'src/users/schema/users.schema';
 import { UsersService } from 'src/users/users.service';
-import { addChatDto, createGroupDto, findUserToInitialChatDto, getAllChatDto } from './types';
+import { FileBodyBto, addChatDto, createGroupDto, editGroupNameDescDto, findUserToInitialChatDto, getAllChatDto } from './types';
 import { ChatInitiated, ChatInitiatedDocument } from './schema/ChatInitiated.schema';
 import { GroupMember, GroupMemberDocument } from './schema/GroupMember.scheme';
+import { promises } from 'dns';
 
 @UsePipes(ValidationPipe)
 @Injectable()
@@ -58,7 +59,7 @@ export class ChatsService {
             }])
 
             await this.ChatInitiatedModel.updateOne({ _id: initiated?.[0]?._id }, { lastChatMessageId: chat?.[0]?._id })
-            return result;
+            return "Initiatyed sucessfull";
         } catch (err) {
             throw new InternalServerErrorException(err?.message);
         }
@@ -69,7 +70,7 @@ export class ChatsService {
             const { userId } = user;
             console.log(userId)
 
-            const result = await this.ChatInitiatedModel.aggregate(
+            let result: any = await this.ChatInitiatedModel.aggregate(
                 [
                     {
                         $match: {
@@ -135,6 +136,7 @@ export class ChatsService {
                             },
                             opponentPic: "$user.profilePic",
                             messageUpdatedAt: "$result.updatedAt",
+                            messageCreatedAt: "$result.createdAt",
                             message: "$result.message",
                             belongsTo: "$result.belongsTo",
                             _id: 0
@@ -149,6 +151,35 @@ export class ChatsService {
                 { maxTimeMS: 60000, allowDiskUse: true }
             );
 
+            result = await Promise.all(result.map(async (ele, i) => {
+                let count = await this.chatsModel.aggregate(
+                    [
+                        {
+                            $match: {
+                                belongsTo: ele?.belongsTo,
+                                to: user?.userId,
+                                chatType: "INDIVIDUAL",
+                                isMessageRead: false,
+                            },
+                        },
+                        {
+                            $group: {
+                                _id: {
+                                    $ne: ["$_id", null],
+                                },
+                                count: {
+                                    $sum: 1,
+                                },
+                            },
+                        },
+                    ]
+                )
+                console.log(count?.[0]?.count)
+                ele["unReadMessageCount"] = (count?.[0]?.count == undefined) ? 0 : count?.[0]?.count
+                console.log(ele)
+                return ele
+            }))
+            console.log(result)
             return result;
         } catch (err) {
             throw new InternalServerErrorException(err?.message);
@@ -193,6 +224,28 @@ export class ChatsService {
                         $limit: Number(limit),
                     },
                     {
+                        $lookup: {
+                            from: "users",
+                            localField: "from",
+                            foreignField: "_id",
+                            as: "sender",
+                        },
+                    },
+                    {
+                        $unwind: "$sender",
+                    },
+                    {
+                        $set: {
+                            sender: {
+                                $concat: [
+                                    "$sender.firstName",
+                                    " ",
+                                    "$sender.lastName",
+                                ],
+                            },
+                        },
+                    },
+                    {
                         $addFields: {
                             date: {
                                 $dayOfMonth: "$createdAt",
@@ -230,6 +283,7 @@ export class ChatsService {
                                     message: "$message",
                                     minute: "$minute",
                                     hours: "$hours",
+                                    sender: "$sender",
                                 },
                             },
                         },
@@ -242,7 +296,7 @@ export class ChatsService {
                 ]
             )
             const currentDate = new Date()
-            const data = { date: currentDate?.getDate(), month: currentDate?.getMonth(), year: currentDate?.getFullYear() }
+            const data = { date: currentDate?.getDate(), month: currentDate?.getMonth() + 1, year: currentDate?.getFullYear() }
             const last = chats?.[0]?._id
             if (skip == '0' && last?.date != data?.date && last?.month != data?.month && last?.year != data?.year) {
                 chats = [{ _id: data, chats: [] }, ...chats]
@@ -284,7 +338,7 @@ export class ChatsService {
         return result
     }
 
-    async setReadmessages(user, belongsTo, type : string) {
+    async setReadmessages(user, belongsTo, type: string) {
         try {
             if (type == "INDIVIDUAL") {
                 await this.chatsModel.updateMany({
@@ -296,7 +350,7 @@ export class ChatsService {
             else if (type == "GROUP") {
                 await this.chatsModel.updateMany({
                     belongsTo: new mongoose.Types.ObjectId(belongsTo),
-                    "messsageReadList.user" : {$ne : user?.userId}
+                    "messsageReadList.user": { $ne: user?.userId }
                 }, { $push: { messsageReadList: { user: user?.userId } } })
             }
         } catch (err) {
@@ -308,17 +362,11 @@ export class ChatsService {
         try {
             const { userId } = user;
 
-            const result = await this.chatsModel.aggregate([
+            const chatResult = await this.chatsModel.aggregate([
                 {
                     $match: {
-                        $or: [
-                            // {
-                            //     from: userId
-                            // },
-                            {
-                                to: userId
-                            },
-                        ],
+                        to: userId,
+                        chatType: "INDIVIDUAL",
                         isMessageRead: false,
                     },
                 },
@@ -332,7 +380,58 @@ export class ChatsService {
                 },
             ])
 
-            return result
+            const getAllGroupOfAUSer = await this.GroupMemberModel.aggregate(
+                [
+                    {
+                        $match: {
+                            memeberId: user?.userId
+                        },
+                    },
+                    {
+                        $project: {
+                            groupId: 1,
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: { $ne: ["$_id", null] },
+                            groupId: { $push: "$groupId" }
+                        }
+                    }
+                ]
+            )
+            let groupsUnreadMsgCount = []
+            if (Array.isArray(getAllGroupOfAUSer?.[0]?.groupId)) {
+
+                groupsUnreadMsgCount = await this.chatsModel.aggregate(
+                    [
+                        {
+                            $match: {
+                                belongsTo: {
+                                    $in: getAllGroupOfAUSer?.[0]?.groupId
+                                },
+                                "messsageReadList.user": {
+                                    $ne: user?.userId,
+                                },
+                            },
+                        },
+                        {
+                            $group: {
+                                _id: { $ne: ["$_id", null] },
+                                count: {
+                                    $sum: 1,
+                                },
+                            },
+                        },
+                    ]
+                )
+            }
+
+
+            return {
+                chat: chatResult?.[0]?.count,
+                group: groupsUnreadMsgCount?.[0]?.count,
+            }
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }
@@ -500,7 +599,7 @@ export class ChatsService {
             const { userId } = user;
             console.log(userId)
 
-            const result = await this.GroupMemberModel.aggregate(
+            let result = await this.GroupMemberModel.aggregate(
                 [
                     {
                         $match: {
@@ -557,10 +656,39 @@ export class ChatsService {
                             groupProfilePic: 1,
                         },
                     },
+                    {
+                        $sort: {
+                            createdAt: -1
+                        }
+                    }
                 ],
                 { maxTimeMS: 60000, allowDiskUse: true }
             );
 
+            result = await Promise.all(result.map(async (ele, i) => {
+                let count = await this.chatsModel.aggregate([
+                    {
+                        $match: {
+                            belongsTo: ele?.belongsTo,
+                            "messsageReadList.user": {
+                                $ne: user?.userId,
+                            },
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: {
+                                $ne: ["$_id", null],
+                            },
+                            count: {
+                                $sum: 1,
+                            },
+                        },
+                    },
+                ])
+                ele["unReadMessageCount"] = (count?.[0]?.count) ? count?.[0]?.count : 0
+                return ele;
+            }))
             return result;
         } catch (err) {
             throw new InternalServerErrorException(err?.message);
@@ -593,5 +721,161 @@ export class ChatsService {
             }
         )
         return result
+    }
+
+    async editGroupNameDesc(user: any, data: editGroupNameDescDto) {
+        try {
+            const { belongsTo } = data;
+            delete data["belongsTo"]
+            const isAdmin = await this.GroupMemberModel.findOne({
+                groupId: new mongoose.Types.ObjectId(belongsTo),
+                memeberId: user?.userId,
+                role: "ADMIN"
+            })
+
+            console.log(isAdmin)
+            console.log(data)
+
+            if (isAdmin) {
+                await this.ChatInitiatedModel.updateOne({ _id: new mongoose.Types.ObjectId(belongsTo) }, { $set: { ...data } })
+            } else {
+                throw new BadRequestException("You dont have an accesss to change")
+            }
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async getProfileDetails(user, belongsTo, type) {
+        try {
+            if (!(belongsTo && type)) {
+                throw new BadRequestException("Requirements are not satisfied");
+            }
+            if (type == "GROUP") {
+                const profileData = await this.GroupMemberModel.aggregate([
+                    {
+                        $match: {
+                            groupId: new mongoose.Types.ObjectId(
+                                belongsTo
+                            ),
+                            memeberId: user?.userId
+                        },
+                    },
+                    {
+                        $lookup: {
+                            from: "chatinitiateds",
+                            localField: "groupId",
+                            foreignField: "_id",
+                            as: "group",
+                        },
+                    },
+                    {
+                        $unwind: "$group",
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "group.from",
+                            foreignField: "_id",
+                            as: "admin",
+                        },
+                    },
+                    {
+                        $unwind: "$admin",
+                    },
+                    {
+                        $project: {
+                            groupId: 1,
+                            role: 1,
+                            groupName: "$group.groupName",
+                            description: "$group.description",
+                            profilePic: "$group.groupProfilePic",
+                            type: "$group.type",
+                            createdBy: {
+                                $concat: [
+                                    "$admin.firstName",
+                                    " ",
+                                    "$admin.lastName",
+                                ],
+                            },
+                            createdAt: "$group.createdAt",
+                            adminId: "$group.from",
+                        },
+                    },
+                ])
+                return profileData
+            } else {
+                return await this.ChatInitiatedModel.aggregate(
+                    [
+                        {
+                            $match: {
+                                _id: new mongoose.Types.ObjectId(belongsTo),
+                            },
+                        },
+                        {
+                            $addFields: {
+                                opponent: {
+                                    $cond: {
+                                        if: {
+                                            $eq: [
+                                                "$from",
+                                                user?.userId,
+                                            ],
+                                        },
+                                        then: "$to",
+                                        else: "$from",
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "opponent",
+                                foreignField: "_id",
+                                as: "user",
+                            },
+                        },
+                        {
+                            $unwind: "$user",
+                        },
+                        {
+                            $project: {
+                                profilePic: "$user.profilePic",
+                                name: {
+                                    $concat: [
+                                        "$user.firstName",
+                                        " ",
+                                        "$user.lastName",
+                                    ],
+                                },
+                                email: "$user.email",
+                            },
+                        },
+                    ]
+                )
+            }
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async changeGroupProfilePic(user, belongsTo, body: FileBodyBto) {
+        try {
+            if (!belongsTo) {
+                throw new BadRequestException("Requiredments are not satisfied")
+            }
+            const { FileId, url } = body
+            return await this.ChatInitiatedModel.updateOne({
+                _id: new mongoose.Types.ObjectId(belongsTo)
+            }, {
+                $set: {
+                    groupProfilePic: url,
+                    FileId
+                }
+            })
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
     }
 }

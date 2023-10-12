@@ -17,16 +17,16 @@ export class ChatInitiated{
     @Prop({type : mongoose.Types.ObjectId})
     lastChatMessageId : mongoose.Schema.Types.ObjectId
     
-    @Prop({type : Date , default : Date.now()})
+    @Prop({type : Date })
     createdAt : Date
     
-    @Prop({type : Date , default : Date.now()})
+    @Prop({type : Date })
     updatedAt : Date
     
     @Prop({type : String })
     groupName : String
     
-    @Prop({type : String })
+    @Prop({type : String , default : "INDIVIDUAL"})
     type : String
     
     @Prop({type : String })
@@ -34,6 +34,9 @@ export class ChatInitiated{
     
     @Prop({type : String })
     groupProfilePic : String
+    
+    @Prop({type : String })
+    FileId : String
 }
 
 export const ChatInitiatedSchema = SchemaFactory.createForClass(ChatInitiated);

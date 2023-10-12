@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Post, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ChatsService } from './chats.service';
 import { UsersService } from 'src/users/users.service';
-import { createGroupDto, findUserToInitialChatDto, getAllChatDto } from './types';
+import { FileBodyBto, createGroupDto, editGroupNameDescDto, findUserToInitialChatDto, getAllChatDto } from './types';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from 'src/log-in-devices/currentUser.decorator';
 
@@ -84,5 +84,35 @@ export class ChatsController {
     ) {
         return await this.ChatsService.getAllInitiatedChatGroupList(user);
     }
+    
+    @UseGuards(AuthGuard())
+    @Put("/editGroupNameDesc")
+    async editGroupNameDesc(
+        @CurrentUser() user: any,
+        @Body() data: editGroupNameDescDto,
+    ) {
+        return await this.ChatsService.editGroupNameDesc(user , data);
+    }
+    
+    @UseGuards(AuthGuard())
+    @Get("/getProfileDetails")
+    async getProfileDetails(
+        @CurrentUser() user: any,
+        @Query("belongsTo") belongsTo: string,
+        @Query("type") type: string,
+    ) {
+        return await this.ChatsService.getProfileDetails(user , belongsTo,type);
+    }
+    
+    @UseGuards(AuthGuard())
+    @Put("/change-group-profile-pic")
+    async changeGroupProfilePic(
+        @CurrentUser() user: any,
+        @Query("belongsTo") belongsTo: string,
+        @Body() body : FileBodyBto
+    ) {
+        return await this.ChatsService.changeGroupProfilePic(user , belongsTo,body);
+    }
 
+    
 }

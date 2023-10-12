@@ -4,52 +4,52 @@ import mongoose from "mongoose";
 export type chatsDocument = chats & Document
 
 enum chatType {
-    INDIVIDUAL="INDIVIDUAL",
+    INDIVIDUAL = "INDIVIDUAL",
     GROUP = "GROUP",
 }
 
-@Schema({timestamps : true})
-class messsageReadList{
+@Schema({ timestamps: true })
+class messsageReadList {
     @Prop({ type: mongoose.Types.ObjectId })
     user: mongoose.Schema.Types.ObjectId
 
-    @Prop({type : Date })
-    createdAt : Date
-    
-    @Prop({type : Date })
-    updatedAt : Date
+    @Prop({ type: Date })
+    createdAt: Date
+
+    @Prop({ type: Date })
+    updatedAt: Date
 }
 
 @Schema({ timestamps: true })
 export class chats {
-    @Prop({ type: mongoose.Types.ObjectId , required : true })
+    @Prop({ type: mongoose.Types.ObjectId, required: true })
     from: mongoose.Schema.Types.ObjectId
 
     @Prop({ type: mongoose.Types.ObjectId })
     to: mongoose.Schema.Types.ObjectId
 
-    @Prop({ type: String , required : true})
+    @Prop({ type: String, required: true })
     message: String
-    
-    @Prop({ type: Boolean , default : false })
+
+    @Prop({ type: Boolean, default: false })
     isInitiated: Boolean
-    
-    @Prop({ type: Boolean , default : false })
+
+    @Prop({ type: Boolean, default: false })
     isMessageRead: Boolean
-    
-    @Prop({ required : true , default : "INDIVIDUAL"})
+
+    @Prop({ required: true, default: "INDIVIDUAL" })
     chatType: chatType
-    
-    @Prop({ default : []})
+
+    @Prop({ default: [] })
     messsageReadList: messsageReadList[]
 
-    @Prop({type : Date , default : Date.now()})
-    createdAt : Date
-    
-    @Prop({type : Date , default : Date.now()})
-    updatedAt : Date
+    @Prop({ type: Date })
+    createdAt: Date
 
-    @Prop({ type: mongoose.Types.ObjectId, required : true })
+    @Prop({ type: Date })
+    updatedAt: Date
+
+    @Prop({ type: mongoose.Types.ObjectId, required: true })
     belongsTo: mongoose.Schema.Types.ObjectId
 }
 

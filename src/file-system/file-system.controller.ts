@@ -14,12 +14,22 @@ export class FileSystemController {
     //     return this.FileSystemService.uploadFile("");
     // }
 
-    @Post()
+    @Post("/upload")
     @UseInterceptors(FileInterceptor('file', multerConfig))
-    uploadFileToLocal(@UploadedFile() file) {
+    uploadFileToLocal(
+        @UploadedFile() file,
+    ) {
         console.log('File uploaded:', file);
-        const { originalname, mimetype, size, filename } = file;
-        return this.FileSystemService.uploadFile(originalname, mimetype, size, filename);
+        return this.FileSystemService.uploadFile(file)
+    }
+    
+    @Post("/upload-and-get-url")
+    @UseInterceptors(FileInterceptor('file', multerConfig))
+    async uploadFileAndGetUrl(
+        @UploadedFile() file,
+    ) {
+        console.log('File uploaded:', file);
+        return await  this.FileSystemService.uploadFileAndGetUrl(file)
     }
 
     @Delete()
@@ -32,7 +42,7 @@ export class FileSystemController {
 
     @Get("/generate-public-url")
     generatePublicUrl(
-        @Query("fileId") fileId: String
+        @Query("fileId") fileId: string
     ) {
         console.log(fileId);
         return this.FileSystemService.generatePublicUrl(fileId);
