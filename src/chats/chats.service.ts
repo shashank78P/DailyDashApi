@@ -46,15 +46,19 @@ export class ChatsService {
                 from: user?.userId,
                 to: result?._id,
                 between: user?.userId.toString() + result?._id.toString(),
-                message: "initiated chat",
-                isInitiated: true
+                event : {
+                    message: "initiated chat",
+                    type : "CHAT_INITIATED"
+                },
             }])
             console.log(initiated)
             const chat = await this.chatsModel.insertMany([{
                 from: user?.userId,
                 to: result?._id,
-                message: "initiated chat",
-                isInitiated: true,
+                event : {
+                    message: "initiated chat",
+                    type : "CHAT_INITIATED"
+                },
                 belongsTo: initiated?.[0]?._id
             }])
 
@@ -573,7 +577,10 @@ export class ChatsService {
             const firstChat = await this.chatsModel.insertMany([
                 {
                     from: user?.userId,
-                    message: "initiated",
+                    event : {
+                        message: "initiated chat",
+                        type : "CHAT_INITIATED"
+                    },
                     isInitiated: true,
                     belongsTo: groupId,
                     chatType: "GROUP"
@@ -592,7 +599,6 @@ export class ChatsService {
             throw new InternalServerErrorException(err?.message)
         }
     }
-
 
     async getAllInitiatedChatGroupList(user: any) {
         try {

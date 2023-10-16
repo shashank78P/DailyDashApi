@@ -3,7 +3,7 @@ import { extname } from 'path';
 
 export const multerConfig = {
   storage: diskStorage({
-    destination: './uploads', // Choose the directory where files will be saved
+    destination: './uploads',
     filename: (req, file, callback) => {
       const randomName = Array(32)
         .fill(null)

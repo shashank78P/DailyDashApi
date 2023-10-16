@@ -7,6 +7,8 @@ import { extname } from 'path';
 import { FileSystem, FileSystemDocument } from './schema/file-system.schema';
 import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import axios from 'axios';
+import { buffer } from 'node:stream/consumers';
 
 // const oauth2Client = new google.auth.OAuth2({
 //     clientId: "168934949203-4nfd5hoffeqproi3uc6gvr5tret70te2.apps.googleusercontent.com",
@@ -81,11 +83,11 @@ export class FileSystemService {
         try {
             const result = await this.uploadFile(file);
 
-            const fileId : String = result?.[0]?.FileId
+            const fileId: String = result?.[0]?.FileId
             if (fileId) {
                 await this.generatePublicUrl(fileId)
                 const link = await this.getFileLinkById(fileId)
-                return { ...link , fileId}
+                return { ...link, fileId }
             } else {
                 throw new BadRequestException("error in upload")
             }
@@ -97,7 +99,7 @@ export class FileSystemService {
     async uploadFileToLocal(file) {
         try {
             storage: diskStorage({
-                destination: './uploads', // Choose the directory where files will be saved
+                destination: './uploads', 
                 filename: (req, file, callback) => {
                     const randomName = Array(32)
                         .fill(null)
@@ -124,7 +126,7 @@ export class FileSystemService {
         }
     }
 
-    async generatePublicUrl(fileId : String) {
+    async generatePublicUrl(fileId: String) {
         try {
             console.log(fileId);
 
@@ -201,4 +203,62 @@ export class FileSystemService {
     //         throw new InternalServerErrorException(err?.message)
     //     }
     // }
+
+    async uploadVideoBase64Data(body :any) {
+        try {
+            console.log(body);
+            console.log(body?.file)
+            const data = body?.file?.replace(/^data:video\/mp4;base64,/, '');
+
+            // Converting base64 to binary
+            const buffer = Buffer.from(data, 'base64');
+
+            const randomName = Array(32).fill(null).map(()=>Math.round(Math.random()*16).toString(16)).join('')
+
+            fs.writeFileSync(`${randomName}.webm`, buffer, {encoding : "binary"});
+            const response = await this.drive.files.create({
+                requestBody: {
+                    name: `${randomName}.webm`,
+                    mimeType: "video/webm",
+                },
+                media: {
+                    parent: "userProfile",
+                    mimeType: "video/webm",
+                    body: fs.createReadStream(`./${randomName}.webm`)
+                }
+            })
+            return response;
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+    
+    async uploadAudioBase64Data(body :any) {
+        try {
+            console.log(body);
+            console.log(body?.file)
+            const data = body?.file?.replace(/^data:audio\/mp4;base64,/, '');
+
+            // Converting base64 to binary
+            const buffer = Buffer.from(data, 'base64');
+
+            const randomName = Array(32).fill(null).map(()=>Math.round(Math.random()*16).toString(16)).join('')
+
+            fs.writeFileSync(`${randomName}.webm`, buffer, {encoding : "binary"});
+            const response = await this.drive.files.create({
+                requestBody: {
+                    name: `${randomName}.webm`,
+                    mimeType: "audio/webm",
+                },
+                media: {
+                    parent: "userProfile",
+                    mimeType: "audio/webm",
+                    body: fs.createReadStream(`./${randomName}.webm`)
+                }
+            })
+            return response;
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
 }

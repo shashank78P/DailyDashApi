@@ -54,6 +54,20 @@ export class FileSystemController {
         console.log(fileId);
         return this.FileSystemService.getFileLinkById(fileId);
     }
+    
+    @Post("/upload-video-base64-data")
+    uploadVideoBase64Data(
+        @Body() body: any
+    ) {
+        return this.FileSystemService.uploadVideoBase64Data(body);
+    }
+    
+    @Post("/upload-Audio-base64-data")
+    uploadAudioBase64Data(
+        @Body() body: any
+    ) {
+        return this.FileSystemService.uploadAudioBase64Data(body);
+    }
 
     // @Post("/resumableUploads")
     // resumableUploads(
