@@ -1,4 +1,5 @@
 import { IsEmpty, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { EventType } from "./schema/chat.schema";
 
 export class findUserToInitialChatDto {
     @IsString()
@@ -18,14 +19,36 @@ export class getAllChatDto {
     limit: string
 }
 
+export enum MessageType {
+    TEXT = "TEXT",
+    AUDIO = "AUDIO",
+    VIDEO = "VIDEO",
+    IMAGE = "IMAGE",
+}
+
+export class eventDto {
+    @IsString()
+    type : EventType
+
+    @IsString()
+    message : string
+}
+
 export class addChatDto {
     @IsNotEmpty()
     @IsString()
     belongsTo: string
 
-    @IsNotEmpty()
     @IsString()
     message: string
+    
+    @IsNotEmpty()
+    @IsString()
+    messageType: MessageType
+    
+    @IsOptional()
+    @IsString()
+    fileId: string
 
     @IsNotEmpty()
     @IsString()
@@ -34,7 +57,8 @@ export class addChatDto {
     @IsNotEmpty()
     @IsString()
     to: string
-
+    
+    event : eventDto
 }
 
 export class createGroupDto {
@@ -44,13 +68,26 @@ export class createGroupDto {
 
     @IsNotEmpty()
     users: string[]
+}
 
+export class AddUserToGroupDto {
+    @IsNotEmpty()
+    @IsString()
+    belongsTo: string
+
+    @IsNotEmpty()
+    users: string[]
 }
 
 export enum role {
     ADMIN = "ADMIN",
     CO_ADMIN = "CO_ADMIN",
     MEMBER = "MEMBER"
+}
+
+export enum joined {
+    ADDED = "ADDED",
+    LINK = "LINK"
 }
 
 export class editGroupNameDescDto {

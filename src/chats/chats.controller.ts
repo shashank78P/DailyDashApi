@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Put, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ChatsService } from './chats.service';
 import { UsersService } from 'src/users/users.service';
-import { FileBodyBto, createGroupDto, editGroupNameDescDto, findUserToInitialChatDto, getAllChatDto } from './types';
+import { AddUserToGroupDto, FileBodyBto, createGroupDto, editGroupNameDescDto, findUserToInitialChatDto, getAllChatDto } from './types';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from 'src/log-in-devices/currentUser.decorator';
 
@@ -69,12 +69,43 @@ export class ChatsController {
     }
     
     @UseGuards(AuthGuard())
+    @Get("/getUserOfMyContactExceptParticularGroup")
+    async getUserOfMyContactExceptParticularGroup(
+        @Query("limit") limit: number,
+        @Query("skip") skip: number,
+        @CurrentUser() user: any,
+        @Query("belongsTo") belongsTo: string,
+        @Query("search") search?: string,
+    ) {
+        return await this.ChatsService.getUserOfMyContactExceptParticularGroup(user, limit, skip, belongsTo, search);
+    }
+    
+    @UseGuards(AuthGuard())
     @Post("/createGroup")
     async createGroup(
         @Body() body: createGroupDto,
         @CurrentUser() user: any,
     ) {
         return await this.ChatsService.createGroup(user, body);
+    }
+    
+    @UseGuards(AuthGuard())
+    @Post("/AddUserToGroup")
+    async AddUserToGroup(
+        @Body() body: AddUserToGroupDto,
+        @CurrentUser() user: any,
+    ) {
+        return await this.ChatsService.AddUserToGroup(user, body);
+    }
+    
+    @UseGuards(AuthGuard())
+    @Get("/generateInviteLink")
+    async GenerateInviteLink(
+        @Query("belongsTo") belongsTO:string,
+        @Query("lifeSpan") lifeSpan:string,
+        @CurrentUser() user: any,
+    ) {
+        return await this.ChatsService.GenerateInviteLink(user, belongsTO , lifeSpan);
     }
     
     @UseGuards(AuthGuard())
@@ -113,6 +144,23 @@ export class ChatsController {
     ) {
         return await this.ChatsService.changeGroupProfilePic(user , belongsTo,body);
     }
-
+    
+    @UseGuards(AuthGuard())
+    @Get("/group-details-from-invite-link")
+    async GroupDetailsFromInviteLink(
+        @CurrentUser() user: any,
+        @Query("token") token: string,
+    ) {
+        return await this.ChatsService.GroupDetailsFromInviteLink(user ,token);
+    }
+    
+    @UseGuards(AuthGuard())
+    @Post("/join-group-from-invite-link")
+    async JoinGroupFromInviteLink(
+        @CurrentUser() user: any,
+        @Query("token") token: string,
+    ) {
+        return await this.ChatsService.JoinGroupFromInviteLink(user ,token);
+    }
     
 }

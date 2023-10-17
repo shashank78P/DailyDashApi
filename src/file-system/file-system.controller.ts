@@ -16,11 +16,11 @@ export class FileSystemController {
 
     @Post("/upload")
     @UseInterceptors(FileInterceptor('file', multerConfig))
-    uploadFileToLocal(
+    async uploadFileToLocal(
         @UploadedFile() file,
     ) {
         console.log('File uploaded:', file);
-        return this.FileSystemService.uploadFile(file)
+        return await this.FileSystemService.uploadFile(file)
     }
     
     @Post("/upload-and-get-url")
@@ -56,17 +56,17 @@ export class FileSystemController {
     }
     
     @Post("/upload-video-base64-data")
-    uploadVideoBase64Data(
+    async uploadVideoBase64Data(
         @Body() body: any
     ) {
-        return this.FileSystemService.uploadVideoBase64Data(body);
+        return await this.FileSystemService.uploadVideoBase64Data(body);
     }
     
     @Post("/upload-Audio-base64-data")
-    uploadAudioBase64Data(
+    async uploadAudioBase64Data(
         @Body() body: any
     ) {
-        return this.FileSystemService.uploadAudioBase64Data(body);
+        return await this.FileSystemService.uploadAudioBase64Data(body);
     }
 
     // @Post("/resumableUploads")

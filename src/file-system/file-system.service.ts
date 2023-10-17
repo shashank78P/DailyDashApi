@@ -59,20 +59,23 @@ export class FileSystemService {
                     body: fs.createReadStream(`./uploads/${filename}`)
                 }
             })
-            const { id, mimeType, name } = response?.["data"];
-            console.log(response);
             if (response?.headers?.status == 200) {
                 throw new BadRequestException("File Not Uploaded Sucessfully")
             }
+            const { id, mimeType, name } = response?.["data"];
 
-            // Delete the file from your local server (assuming you are storing it locally)
             const filePath = `./uploads/${name}`;
             // fs.unlinkSync(filePath);
 
             await fs.promises.unlink(filePath);
-            const result = await this.FileSystemModel.insertMany([{ FileId: id, mimeType, FileName: name }])
-            console.log(result);
+            if (!id) {
+                throw new BadRequestException("Upload failed")
+            }
+            await this.generatePublicUrl(id)
+            const fileLink = await this.getFileLinkById(id);
+            let result = await this.FileSystemModel.insertMany([{ FileId: id, mimeType, FileName: name, link: fileLink?.webContentLink }])
             return result;
+
         } catch (err) {
             console.log(err?.message);
             throw new InternalServerErrorException(err?.message)
@@ -99,7 +102,7 @@ export class FileSystemService {
     async uploadFileToLocal(file) {
         try {
             storage: diskStorage({
-                destination: './uploads', 
+                destination: './uploads',
                 filename: (req, file, callback) => {
                     const randomName = Array(32)
                         .fill(null)
@@ -115,11 +118,9 @@ export class FileSystemService {
 
     async deleteFile(fileId) {
         try {
-            console.log(fileId);
             const result = await this.drive.files.delete({
                 fileId
             })
-            console.log(result.data);
             return result;
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
@@ -128,7 +129,6 @@ export class FileSystemService {
 
     async generatePublicUrl(fileId: String) {
         try {
-            console.log(fileId);
 
             const result = await this.drive.permissions.create({
                 fileId,
@@ -138,7 +138,6 @@ export class FileSystemService {
                 }
             })
 
-            console.log(result.data);
             return result;
 
         } catch (err) {
@@ -148,7 +147,6 @@ export class FileSystemService {
 
     async getFileLinkById(fileId) {
         try {
-            console.log(fileId);
 
             const result = await this.drive.files.get({
                 fileId,
@@ -156,7 +154,6 @@ export class FileSystemService {
                 // alt: 'media',
             })
 
-            console.log(result.data);
             return result?.data;
 
         } catch (err) {
@@ -169,7 +166,6 @@ export class FileSystemService {
                 fileId: fileId,
                 mimeType: 'application/pdf',
             });
-            console.log(result.status);
             return result;
         } catch (err) {
             // TODO(developer) - Handle error
@@ -204,18 +200,16 @@ export class FileSystemService {
     //     }
     // }
 
-    async uploadVideoBase64Data(body :any) {
+    async uploadVideoBase64Data(body: any) {
         try {
-            console.log(body);
-            console.log(body?.file)
             const data = body?.file?.replace(/^data:video\/mp4;base64,/, '');
 
             // Converting base64 to binary
             const buffer = Buffer.from(data, 'base64');
 
-            const randomName = Array(32).fill(null).map(()=>Math.round(Math.random()*16).toString(16)).join('')
+            const randomName = Array(32).fill(null).map(() => Math.round(Math.random() * 16).toString(16)).join('')
 
-            fs.writeFileSync(`${randomName}.webm`, buffer, {encoding : "binary"});
+            fs.writeFileSync(`./uploads/${randomName}.webm`, buffer, { encoding: "binary" });
             const response = await this.drive.files.create({
                 requestBody: {
                     name: `${randomName}.webm`,
@@ -224,39 +218,71 @@ export class FileSystemService {
                 media: {
                     parent: "userProfile",
                     mimeType: "video/webm",
-                    body: fs.createReadStream(`./${randomName}.webm`)
+                    body: fs.createReadStream(`./uploads/${randomName}.webm`)
                 }
             })
-            return response;
+            const { id, mimeType, name } = response?.["data"];
+            if (response?.headers?.status == 200) {
+                throw new BadRequestException("File Not Uploaded Sucessfully")
+            }
+
+            // Delete the file from your local server (assuming you are storing it locally)
+            const filePath = `./uploads/${randomName}.webm`;
+            // fs.unlinkSync(filePath);
+
+            await fs.promises.unlink(filePath);
+            if (!id) {
+                throw new BadRequestException("Not uploaded successfully")
+            }
+            await this.generatePublicUrl(id)
+            const fileLink = await this.getFileLinkById(id);
+            const result = await this.FileSystemModel.insertMany([{ FileId: id, mimeType, FileName: name, link: fileLink?.webContentLink }])
+            return result;
+
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }
     }
-    
-    async uploadAudioBase64Data(body :any) {
+
+    async uploadAudioBase64Data(body: any) {
         try {
-            console.log(body);
-            console.log(body?.file)
-            const data = body?.file?.replace(/^data:audio\/mp4;base64,/, '');
+            const data = body?.file?.replace(/^data:audio\/wav;base64,/, '');
 
             // Converting base64 to binary
             const buffer = Buffer.from(data, 'base64');
 
-            const randomName = Array(32).fill(null).map(()=>Math.round(Math.random()*16).toString(16)).join('')
+            const randomName = Array(32).fill(null).map(() => Math.round(Math.random() * 16).toString(16)).join('')
 
-            fs.writeFileSync(`${randomName}.webm`, buffer, {encoding : "binary"});
+            fs.writeFileSync(`./uploads/${randomName}.wav`, buffer, { encoding: "binary" });
             const response = await this.drive.files.create({
                 requestBody: {
-                    name: `${randomName}.webm`,
-                    mimeType: "audio/webm",
+                    name: `${randomName}.wav`,
+                    mimeType: "audio/wav",
                 },
                 media: {
                     parent: "userProfile",
-                    mimeType: "audio/webm",
-                    body: fs.createReadStream(`./${randomName}.webm`)
+                    mimeType: "audio/wav",
+                    body: fs.createReadStream(`./uploads/${randomName}.wav`)
                 }
             })
-            return response;
+            const { id, mimeType, name } = response?.["data"];
+            if (response?.headers?.status == 200) {
+                throw new BadRequestException("File Not Uploaded Sucessfully")
+            }
+
+            // Delete the file from your local server (assuming you are storing it locally)
+            const filePath = `./uploads/${randomName}.wav`;
+            // fs.unlinkSync(filePath);
+
+            await fs.promises.unlink(filePath);
+
+            if (!id) {
+                throw new BadRequestException("Not uploaded successfully")
+            }
+            await this.generatePublicUrl(id)
+            const fileLink = await this.getFileLinkById(id);
+            const result = await this.FileSystemModel.insertMany([{ FileId: id, mimeType, FileName: name, link: fileLink?.webContentLink }])
+            return result;
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }

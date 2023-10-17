@@ -1,19 +1,22 @@
-import { BadRequestException, Injectable, InternalServerErrorException, UsePipes, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException, UsePipes, ValidationPipe } from '@nestjs/common';
 import { chats, chatsDocument } from './schema/chat.schema';
 import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Users, UsersDocument } from 'src/users/schema/users.schema';
 import { UsersService } from 'src/users/users.service';
-import { FileBodyBto, addChatDto, createGroupDto, editGroupNameDescDto, findUserToInitialChatDto, getAllChatDto } from './types';
+import { AddUserToGroupDto, FileBodyBto, addChatDto, createGroupDto, editGroupNameDescDto, findUserToInitialChatDto, getAllChatDto } from './types';
 import { ChatInitiated, ChatInitiatedDocument } from './schema/ChatInitiated.schema';
 import { GroupMember, GroupMemberDocument } from './schema/GroupMember.scheme';
 import { promises } from 'dns';
+import { CurrentUser } from 'src/log-in-devices/currentUser.decorator';
+import { JwtService } from '@nestjs/jwt';
 
 @UsePipes(ValidationPipe)
 @Injectable()
 export class ChatsService {
     constructor(
         private readonly UsersService: UsersService,
+        private jwtService: JwtService,
         @InjectModel(chats.name) private chatsModel: Model<chatsDocument>,
         @InjectModel(ChatInitiated.name) private ChatInitiatedModel: Model<ChatInitiatedDocument>,
         @InjectModel(GroupMember.name) private GroupMemberModel: Model<GroupMemberDocument>,
@@ -23,17 +26,17 @@ export class ChatsService {
         try {
             const { email } = data;
             let result = await this.UsersService.getUserByEmail(email);
-            if (result && result?._id.toString() == user?.userId.toString()) {
+            if (result && result?._id.toString() == user?._id.toString()) {
                 throw new BadRequestException("You con't intiated a chat");
             }
 
             let isAlreadyInitialted = await this.ChatInitiatedModel.findOne({
                 $or: [
                     {
-                        between: user?.userId.toString() + result?._id.toString()
+                        between: user?._id.toString() + result?._id.toString()
                     },
                     {
-                        between: result?._id.toString() + user?.userId.toString()
+                        between: result?._id.toString() + user?._id.toString()
                     },
                 ]
             })
@@ -43,21 +46,20 @@ export class ChatsService {
             }
 
             const initiated = await this.ChatInitiatedModel.insertMany([{
-                from: user?.userId,
+                from: user?._id,
                 to: result?._id,
-                between: user?.userId.toString() + result?._id.toString(),
-                event : {
+                between: user?._id.toString() + result?._id.toString(),
+                event: {
                     message: "initiated chat",
-                    type : "CHAT_INITIATED"
+                    type: "CHAT_INITIATED"
                 },
             }])
-            console.log(initiated)
             const chat = await this.chatsModel.insertMany([{
-                from: user?.userId,
+                from: user?._id,
                 to: result?._id,
-                event : {
+                event: {
                     message: "initiated chat",
-                    type : "CHAT_INITIATED"
+                    type: "CHAT_INITIATED"
                 },
                 belongsTo: initiated?.[0]?._id
             }])
@@ -71,8 +73,7 @@ export class ChatsService {
 
     async getAllInitiatedChatUserList(user: any) {
         try {
-            const { userId } = user;
-            console.log(userId)
+            const { _id: userId } = user;
 
             let result: any = await this.ChatInitiatedModel.aggregate(
                 [
@@ -161,7 +162,7 @@ export class ChatsService {
                         {
                             $match: {
                                 belongsTo: ele?.belongsTo,
-                                to: user?.userId,
+                                to: user?._id,
                                 chatType: "INDIVIDUAL",
                                 isMessageRead: false,
                             },
@@ -178,12 +179,9 @@ export class ChatsService {
                         },
                     ]
                 )
-                console.log(count?.[0]?.count)
                 ele["unReadMessageCount"] = (count?.[0]?.count == undefined) ? 0 : count?.[0]?.count
-                console.log(ele)
                 return ele
             }))
-            console.log(result)
             return result;
         } catch (err) {
             throw new InternalServerErrorException(err?.message);
@@ -207,7 +205,6 @@ export class ChatsService {
                 ]
             )
 
-            console.log(totalChats)
             let chats = await this.chatsModel.aggregate(
                 [
                     {
@@ -239,13 +236,17 @@ export class ChatsService {
                         $unwind: "$sender",
                     },
                     {
+                        $lookup: {
+                            from: "filesystems",
+                            localField: "fileId",
+                            foreignField: "_id",
+                            as: "file"
+                        }
+                    },
+                    {
                         $set: {
                             sender: {
-                                $concat: [
-                                    "$sender.firstName",
-                                    " ",
-                                    "$sender.lastName",
-                                ],
+                                $concat: [{ "$ifNull": ["$sender.firstName", ""] }, { "$ifNull": ["$sender.lastName", ""] }]
                             },
                         },
                     },
@@ -285,6 +286,10 @@ export class ChatsService {
                                     createdAt: "$createdAt",
                                     updatedAt: "$updatedAt",
                                     message: "$message",
+                                    messageType: "$messageType",
+                                    fileId: "$fileId",
+                                    file: "$file",
+                                    event: "$event",
                                     minute: "$minute",
                                     hours: "$hours",
                                     sender: "$sender",
@@ -299,7 +304,7 @@ export class ChatsService {
                     }
                 ]
             )
-            const currentDate = new Date()
+            const currentDate = new Date();
             const data = { date: currentDate?.getDate(), month: currentDate?.getMonth() + 1, year: currentDate?.getFullYear() }
             const last = chats?.[0]?._id
             if (skip == '0' && last?.date != data?.date && last?.month != data?.month && last?.year != data?.year) {
@@ -315,9 +320,9 @@ export class ChatsService {
     }
 
     async createMessage(payload: addChatDto) {
-        const { message, to, userId, belongsTo } = payload;
+        const { message, to, userId, belongsTo, fileId, messageType, event } = payload;
 
-        if (!(message && to && userId && belongsTo)) {
+        if (!(to && userId && belongsTo && messageType)) {
             throw new BadRequestException()
         }
 
@@ -326,6 +331,8 @@ export class ChatsService {
                 from: new mongoose.Types.ObjectId(userId),
                 to: new mongoose.Types.ObjectId(to),
                 message,
+                messageType,
+                fileId: new mongoose.Types.ObjectId(fileId),
                 belongsTo: new mongoose.Types.ObjectId(belongsTo)
             }
         ])
@@ -348,14 +355,14 @@ export class ChatsService {
                 await this.chatsModel.updateMany({
                     belongsTo: new mongoose.Types.ObjectId(belongsTo),
                     isMessageRead: false,
-                    to: user?.userId
+                    to: user?._id
                 }, { $set: { isMessageRead: true } })
             }
             else if (type == "GROUP") {
                 await this.chatsModel.updateMany({
                     belongsTo: new mongoose.Types.ObjectId(belongsTo),
-                    "messsageReadList.user": { $ne: user?.userId }
-                }, { $push: { messsageReadList: { user: user?.userId } } })
+                    "messsageReadList.user": { $ne: user?._id }
+                }, { $push: { messsageReadList: { user: user?._id } } })
             }
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
@@ -388,7 +395,7 @@ export class ChatsService {
                 [
                     {
                         $match: {
-                            memeberId: user?.userId
+                            memeberId: user?._id
                         },
                     },
                     {
@@ -415,7 +422,7 @@ export class ChatsService {
                                     $in: getAllGroupOfAUSer?.[0]?.groupId
                                 },
                                 "messsageReadList.user": {
-                                    $ne: user?.userId,
+                                    $ne: user?._id,
                                 },
                             },
                         },
@@ -451,10 +458,10 @@ export class ChatsService {
                     $match: {
                         $or: [
                             {
-                                from: new mongoose.Types.ObjectId(user?.userId)
+                                from: new mongoose.Types.ObjectId(user?._id)
                             },
                             {
-                                to: new mongoose.Types.ObjectId(user?.userId)
+                                to: new mongoose.Types.ObjectId(user?._id)
                             },
                         ],
                     },
@@ -466,7 +473,7 @@ export class ChatsService {
                                 if: {
                                     $eq: [
                                         "$from",
-                                        new mongoose.Types.ObjectId(user?.userId)
+                                        new mongoose.Types.ObjectId(user?._id)
                                     ],
                                 },
                                 then: "$to",
@@ -547,12 +554,210 @@ export class ChatsService {
         }
     }
 
+    async getUserOfMyContactExceptParticularGroup(user: any, limit: number, skip: number, belongsTo: string, search?: string) {
+        try {
+            if ((limit == undefined || skip == undefined) && belongsTo) {
+                throw new BadRequestException("Requriments not satisfied")
+            }
+            const membersPresentInGroup = await this.GroupMemberModel.aggregate(
+                [
+                    {
+                        $match: {
+                            groupId: new mongoose.Types.ObjectId(belongsTo),
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: {
+                                $ne: ["$_id", null],
+                            },
+                            members: {
+                                $push: "$memeberId",
+                            },
+                        },
+                    },
+                    {
+                        $project: {
+                            members: 1,
+                            _id: 0,
+                        },
+                    },
+                ]
+            )
+            console.log(membersPresentInGroup)
+            console.log(membersPresentInGroup?.[0]?.members)
+            const query = [
+                {
+                    $match: {
+                        $or: [
+                            {
+                                from: new mongoose.Types.ObjectId(user?._id)
+                            },
+                            {
+                                to: new mongoose.Types.ObjectId(user?._id)
+                            },
+                        ],
+                    },
+                },
+                {
+                    $addFields: {
+                        opponent: {
+                            $cond: {
+                                if: {
+                                    $eq: [
+                                        "$from",
+                                        new mongoose.Types.ObjectId(user?._id)
+                                    ],
+                                },
+                                then: "$to",
+                                else: "$from",
+                            },
+                        },
+                    },
+                },
+                {
+                    $match: {
+                        opponent: {
+                            $not: {
+                                $in: (Array.isArray(membersPresentInGroup?.[0]?.members)) ? membersPresentInGroup?.[0]?.members : []
+                            }
+                        }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "opponent",
+                        foreignField: "_id",
+                        as: "user",
+                    },
+                },
+                {
+                    $unwind: "$user",
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        userId: "$user._id",
+                        name: {
+                            $concat: [
+                                "$user.firstName",
+                                " ",
+                                "$user.lastName",
+                            ],
+                        },
+                        profilePic: "$user.profilePic",
+                    },
+                },
+            ]
+            let searchQuery = []
+
+            if (search) {
+                searchQuery = [
+                    {
+                        $match: {
+                            name: { $regex: `^${search}`, $options: 'i' }
+                        }
+                    },
+                ]
+            }
+            const total = await this.ChatInitiatedModel.aggregate([
+                ...query,
+                ...searchQuery,
+                {
+                    $count: "count"
+                }
+            ])
+            const result = await this.ChatInitiatedModel.aggregate(
+                [
+                    ...query,
+                    ...searchQuery,
+                    {
+                        $sort: {
+                            name: 1,
+                        },
+                    },
+                    {
+                        $skip: Number(skip)
+                    },
+                    {
+                        $limit: Number(limit)
+                    }
+                ]
+            )
+
+            return {
+                user: result,
+                total: total?.[0]?.count
+            }
+
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async AddUserToGroup(user: any, body: AddUserToGroupDto) {
+        try {
+            const { belongsTo, users } = body;
+            const hasPermission = await this.GroupMemberModel.findOne({ groupId: new mongoose.Types.ObjectId(belongsTo), memeberId: user?._id, role: { $ne: "MEMEBER" } })
+
+            if (!hasPermission) {
+                throw new BadRequestException("Don't have valid permission")
+            }
+            Promise.all(
+                users.map(async (usertToAdd, i) => {
+                    await this.GroupMemberModel.insertMany([
+                        {
+                            groupId: new mongoose.Types.ObjectId(belongsTo),
+                            memeberId: new mongoose.Types.ObjectId(usertToAdd),
+                            role: "MEMEBER",
+                            joined: "ADDED",
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                            joinedBy: user?._id
+                        }
+                    ])
+                })
+            )
+        } catch (err) {
+            throw new InternalServerErrorException(err?.meessage)
+        }
+    }
+
+    async GenerateInviteLink(user, belongsTO, lifeSpan) {
+        try {
+            if (!(belongsTO && lifeSpan)) {
+                throw new BadRequestException("Requirements not matched")
+            }
+            const symbol = lifeSpan[lifeSpan.length - 1];
+
+            if (!["s", "m", "h", "d", "w", "M"].includes(symbol)) {
+                throw new BadRequestException("Invalid lifspan")
+            }
+            const isAdmin = await this.GroupMemberModel.find({ memeberId: user?._id, groupId: new mongoose.Types.ObjectId(belongsTO), role: "ADMIN" })
+
+            if (!isAdmin) {
+                throw new BadRequestException("You Don't have a permission to generate")
+            }
+            const token = await this.jwtService.signAsync(
+                { createdBy: user?._id, belongsTo: belongsTO },
+                {
+                    expiresIn: lifeSpan,
+                }
+            )
+            return { link: `${process.env.FRONT_END}chat/joinGroup?token=${token}` }
+
+        } catch (err) {
+
+        }
+    }
+
     async createGroup(user: any, groupInfo: createGroupDto) {
         try {
             let { groupName, users } = groupInfo
             const group = await this.ChatInitiatedModel.insertMany([
                 {
-                    from: user?.userId,
+                    from: user?._id,
                     type: "GROUP",
                     groupName,
                 }
@@ -560,26 +765,26 @@ export class ChatsService {
             const groupId = group?.[0]?._id
 
             if (Array.isArray(users)) {
-                users = [...users, user?.userId]
+                users = [...users, user?._id]
             } else {
-                users = [user?.userId]
+                users = [user?._id]
             }
             await this.GroupMemberModel.insertMany(
                 users?.map(ele => {
                     return {
                         groupId,
                         memeberId: new mongoose.Types.ObjectId(ele),
-                        role: (ele == user?.userId?.toString()) ? "ADMIN" : "MEMBER"
+                        role: (ele == user?._id?.toString()) ? "ADMIN" : "MEMBER"
                     }
                 })
             )
 
             const firstChat = await this.chatsModel.insertMany([
                 {
-                    from: user?.userId,
-                    event : {
+                    from: user?._id,
+                    event: {
                         message: "initiated chat",
-                        type : "CHAT_INITIATED"
+                        type: "CHAT_INITIATED"
                     },
                     isInitiated: true,
                     belongsTo: groupId,
@@ -603,13 +808,12 @@ export class ChatsService {
     async getAllInitiatedChatGroupList(user: any) {
         try {
             const { userId } = user;
-            console.log(userId)
 
             let result = await this.GroupMemberModel.aggregate(
                 [
                     {
                         $match: {
-                            memeberId: user?.userId
+                            memeberId: user?._id
                         },
                     },
                     {
@@ -677,7 +881,7 @@ export class ChatsService {
                         $match: {
                             belongsTo: ele?.belongsTo,
                             "messsageReadList.user": {
-                                $ne: user?.userId,
+                                $ne: user?._id,
                             },
                         },
                     },
@@ -701,17 +905,28 @@ export class ChatsService {
         }
     }
 
-    async createGroupMessage(payload: addChatDto) {
-        const { message, userId, belongsTo } = payload;
+    async createGroupMessage(payload: addChatDto, userId) {
+        const { message, belongsTo, event, fileId, messageType } = payload;
 
-        if (!(message && userId && belongsTo)) {
+        if (!(belongsTo)) {
             throw new BadRequestException()
+        }
+
+        console.log("user")
+
+
+        if (event?.type == "JOIN" && (!event?.message)) {
+            const user = await this.UsersService.getUserById(userId);
+            event.message += ` ${user?.firstName}  ${user?.lastName}`
         }
 
         const result = await this.chatsModel.insertMany([
             {
                 from: new mongoose.Types.ObjectId(userId),
                 message,
+                messageType,
+                event,
+                fileId: new mongoose.Types.ObjectId(fileId),
                 chatType: "GROUP",
                 belongsTo: new mongoose.Types.ObjectId(belongsTo)
             }
@@ -735,12 +950,9 @@ export class ChatsService {
             delete data["belongsTo"]
             const isAdmin = await this.GroupMemberModel.findOne({
                 groupId: new mongoose.Types.ObjectId(belongsTo),
-                memeberId: user?.userId,
+                memeberId: user?._id,
                 role: "ADMIN"
             })
-
-            console.log(isAdmin)
-            console.log(data)
 
             if (isAdmin) {
                 await this.ChatInitiatedModel.updateOne({ _id: new mongoose.Types.ObjectId(belongsTo) }, { $set: { ...data } })
@@ -764,7 +976,7 @@ export class ChatsService {
                             groupId: new mongoose.Types.ObjectId(
                                 belongsTo
                             ),
-                            memeberId: user?.userId
+                            memeberId: user?._id
                         },
                     },
                     {
@@ -825,7 +1037,7 @@ export class ChatsService {
                                         if: {
                                             $eq: [
                                                 "$from",
-                                                user?.userId,
+                                                user?._id,
                                             ],
                                         },
                                         then: "$to",
@@ -880,6 +1092,59 @@ export class ChatsService {
                     FileId
                 }
             })
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async GroupDetailsFromInviteLink(user, token) {
+        try {
+            let { createdBy, belongsTo }: any = await this.jwtService.verifyAsync(token);
+            const groupDetails = await this.ChatInitiatedModel.findOne({
+                _id: new mongoose.Types.ObjectId(belongsTo)
+            },
+                {
+                    groupProfilePic: 1,
+                    groupName: 1,
+                    description: 1
+                })
+            if (!groupDetails) {
+                throw new NotFoundException();
+            }
+            return groupDetails
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async JoinGroupFromInviteLink(user, token) {
+        try {
+            let { createdBy, belongsTo }: any = await this.jwtService.verifyAsync(token);
+            const isUserAlreadyExist = await this.GroupMemberModel.findOne({
+                groupId: new mongoose.Types.ObjectId(belongsTo),
+                memeberId: user?._id,
+            })
+
+            if (isUserAlreadyExist) {
+                throw new BadRequestException("You are already a memeber of this group")
+            }
+
+            console.log("user?._id")
+            console.log(user?._id)
+
+            let result: any = await this.GroupMemberModel.insertMany([
+                {
+                    groupId: new mongoose.Types.ObjectId(belongsTo),
+                    memeberId: user?._id,
+                    role: "MEMEBER",
+                    joined: "LINK",
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    joinedBy: new mongoose.Types.ObjectId(createdBy)
+                }
+            ])
+            result = result?.[0]
+            return { ...result, userName: `${user?.firstName} ${user?.lastName ? user?.lastName : ""}` }
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }

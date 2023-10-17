@@ -14,12 +14,19 @@ export class FileSystem {
         required: true,
         type: String,
     })
+    
     mimeType: String
     @Prop({
         required: true,
         type: String,
     })
     FileName: String
+
+    @Prop({
+        required: true,
+        type: String,
+    })
+    link: String
 
     @Prop({ default: new Date() })
     createdAt: Date

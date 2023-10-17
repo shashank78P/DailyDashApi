@@ -125,23 +125,31 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
     // inividuals chats handler
     @SubscribeMessage('INDIVIDUAL')
     async handleIndividualSendMessage(client: Socket, payload: any): Promise<void> {
-        const { userId } = await this.verifyToken(client)
-        // console.log(client?.handshake?.auth);
-        console.log(payload)
-        const newMessage = await this.ChatsService.createMessage(payload);
-        
-        this.server.emit(payload?.belongsTo,newMessage?.[0])
-        this.server.emit(`${payload?.to}ChatNotification`,{type : "CHAT"});
+        try{
+            const { userId } = await this.verifyToken(client)
+            // console.log(client?.handshake?.auth);
+            console.log(payload)
+            const newMessage = await this.ChatsService.createMessage(payload);
+            
+            this.server.emit(payload?.belongsTo,newMessage?.[0])
+            this.server.emit(`${payload?.to}ChatNotification`,{type : "CHAT"});
+        }catch(err){
+            console.log(err)
+        }
     }
     
     @SubscribeMessage('GROUP')
     async handleGroupSendMessage(client: Socket, payload: any): Promise<void> {
-        const { userId } = await this.verifyToken(client)
-        // console.log(client?.handshake?.auth);
-        console.log(payload)
-        const newMessage = await this.ChatsService.createGroupMessage(payload);
-        
-        this.server.emit(payload?.belongsTo,newMessage?.[0])
-        this.server.emit(`${payload?.belongsTo}ChatNotification`,{type : "GROUPCHAT"})
+        try{
+            const { userId } = await this.verifyToken(client)
+            // console.log(client?.handshake?.auth);
+            const newMessage = await this.ChatsService.createGroupMessage(payload , userId);
+            console.log(newMessage)
+            
+            this.server.emit(payload?.belongsTo,newMessage?.[0])
+            this.server.emit(`${payload?.belongsTo}ChatNotification`,{type : "GROUPCHAT"})
+        }catch(err){
+            console.log(err)
+        }
     }
 }

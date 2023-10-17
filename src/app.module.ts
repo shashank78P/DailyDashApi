@@ -13,7 +13,7 @@ import { FileSystemModule } from './file-system/file-system.module';
 import { PollsGateway } from './chats/polls.gateway';
 import { corsMiddleware } from './middleware/cors.middleware'; // Import the middleware
 import { ChatsModule } from './chats/chats.module';
-import { JwtService } from '@nestjs/jwt';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 
 // password
 // KTnUhKukTZ9n1fhf
@@ -30,6 +30,14 @@ import { JwtService } from '@nestjs/jwt';
     MailServiceModule,
     FileSystemModule,
     ChatsModule,
+    JwtModule.register(
+      {
+        secret: "DailyDash51",
+        signOptions: {
+          expiresIn: "1d",
+        }
+      }
+    )
   ],
   controllers: [AppController, TaskManagementController],
   providers: [AppService, TaskManagementService, PollsGateway, corsMiddleware ,JwtService],

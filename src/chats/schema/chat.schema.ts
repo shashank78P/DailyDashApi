@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import mongoose from "mongoose";
+import { MessageType } from "../types";
 
 export type chatsDocument = chats & Document
 
@@ -8,14 +9,8 @@ enum chatType {
     GROUP = "GROUP",
 }
 
-enum MessageType {
-    TEXT = "TEXT",
-    AUDIO = "AUDIO",
-    VIDEO = "VIDEO",
-    IMAGE = "IMAGE",
-}
 
-enum EventType {
+export enum EventType {
     CHAT_INITIATED = "CHAT_INITIATED",
     JOIN = "JOIN",
     LEFT = "LEFT",
@@ -23,7 +18,7 @@ enum EventType {
     CREATED = "CREATED",
 }
 
-@Schema({ timestamps: true })
+@Schema({ _id: false })
 class Event{
     @Prop({  })
     type : EventType
@@ -53,7 +48,7 @@ export class chats {
     @Prop({ type: mongoose.Types.ObjectId })
     to: mongoose.Schema.Types.ObjectId
 
-    @Prop({ type: String, required: true , default:null})
+    @Prop({ type: String , default:null})
     message: String
 
     @Prop({ type: Boolean, default: false })
@@ -61,6 +56,9 @@ export class chats {
 
     @Prop({ required: true, default: "TEXT" })
     messageType: MessageType
+    
+    @Prop({ type : mongoose.Types.ObjectId })
+    fileId : mongoose.Types.ObjectId
 
     @Prop({ required: true, default: "INDIVIDUAL" })
     chatType: chatType

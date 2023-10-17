@@ -35,12 +35,12 @@ export class JwtStratery extends PassportStrategy(Strategy) {
   ) {
     super({
       secretOrKey: 'DailyDash51',
-    //   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      //   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       jwtFromRequest: cookieExtractor,
     });
   }
 
-  async validate(payload: any,req : Request) {
+  async validate(payload: any, req: Request) {
     try {
       // console.log('jwt strtergy');
       // console.log('payload =>', payload);
@@ -52,7 +52,6 @@ export class JwtStratery extends PassportStrategy(Strategy) {
         },
         { password: 0 },
       );
-      // console.log(user);
       const deviceDetails = await this.LogInDeviceModel.findOne({
         logInId: loginId,
         userId: new mongoose.Types.ObjectId(userId),
@@ -63,12 +62,11 @@ export class JwtStratery extends PassportStrategy(Strategy) {
       }
       // console.log('after getting all data');
       const userData = {
-        ...user,
         ...deviceDetails,
+        ...user,
       };
-      delete userData?.['_id'];
+      userData["_doc"]["userId"] = new mongoose.Types.ObjectId(userId)
       req["user"] = userData;
-      // console.log(req["user"])
       return userData;
     } catch (err) {
       throw new InternalServerErrorException(err?.message);
