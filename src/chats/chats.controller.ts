@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Put, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Put, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ChatsService } from './chats.service';
 import { UsersService } from 'src/users/users.service';
 import { AddUserToGroupDto, FileBodyBto, createGroupDto, editGroupNameDescDto, findUserToInitialChatDto, getAllChatDto } from './types';
@@ -46,7 +46,7 @@ export class ChatsController {
         @Query("belongsTo") belongsTo: string,
         @Query("type") type: string,
     ) {
-        return await this.ChatsService.setReadmessages(user, belongsTo,type);
+        return await this.ChatsService.setReadmessages(user, belongsTo, type);
     }
 
     @UseGuards(AuthGuard())
@@ -67,7 +67,7 @@ export class ChatsController {
     ) {
         return await this.ChatsService.getUserOfMyContact(user, limit, skip, search);
     }
-    
+
     @UseGuards(AuthGuard())
     @Get("/getUserOfMyContactExceptParticularGroup")
     async getUserOfMyContactExceptParticularGroup(
@@ -79,7 +79,7 @@ export class ChatsController {
     ) {
         return await this.ChatsService.getUserOfMyContactExceptParticularGroup(user, limit, skip, belongsTo, search);
     }
-    
+
     @UseGuards(AuthGuard())
     @Post("/createGroup")
     async createGroup(
@@ -88,7 +88,7 @@ export class ChatsController {
     ) {
         return await this.ChatsService.createGroup(user, body);
     }
-    
+
     @UseGuards(AuthGuard())
     @Post("/AddUserToGroup")
     async AddUserToGroup(
@@ -97,17 +97,17 @@ export class ChatsController {
     ) {
         return await this.ChatsService.AddUserToGroup(user, body);
     }
-    
+
     @UseGuards(AuthGuard())
     @Get("/generateInviteLink")
     async GenerateInviteLink(
-        @Query("belongsTo") belongsTO:string,
-        @Query("lifeSpan") lifeSpan:string,
+        @Query("belongsTo") belongsTO: string,
+        @Query("lifeSpan") lifeSpan: string,
         @CurrentUser() user: any,
     ) {
-        return await this.ChatsService.GenerateInviteLink(user, belongsTO , lifeSpan);
+        return await this.ChatsService.GenerateInviteLink(user, belongsTO, lifeSpan);
     }
-    
+
     @UseGuards(AuthGuard())
     @Get("/getAllInitiatedChatGroupList")
     async getAllInitiatedChatGroupList(
@@ -115,16 +115,16 @@ export class ChatsController {
     ) {
         return await this.ChatsService.getAllInitiatedChatGroupList(user);
     }
-    
+
     @UseGuards(AuthGuard())
     @Put("/editGroupNameDesc")
     async editGroupNameDesc(
         @CurrentUser() user: any,
         @Body() data: editGroupNameDescDto,
     ) {
-        return await this.ChatsService.editGroupNameDesc(user , data);
+        return await this.ChatsService.editGroupNameDesc(user, data);
     }
-    
+
     @UseGuards(AuthGuard())
     @Get("/getProfileDetails")
     async getProfileDetails(
@@ -132,35 +132,78 @@ export class ChatsController {
         @Query("belongsTo") belongsTo: string,
         @Query("type") type: string,
     ) {
-        return await this.ChatsService.getProfileDetails(user , belongsTo,type);
+        return await this.ChatsService.getProfileDetails(user, belongsTo, type);
     }
-    
+
     @UseGuards(AuthGuard())
     @Put("/change-group-profile-pic")
     async changeGroupProfilePic(
         @CurrentUser() user: any,
         @Query("belongsTo") belongsTo: string,
-        @Body() body : FileBodyBto
+        @Body() body: FileBodyBto
     ) {
-        return await this.ChatsService.changeGroupProfilePic(user , belongsTo,body);
+        return await this.ChatsService.changeGroupProfilePic(user, belongsTo, body);
     }
-    
+
     @UseGuards(AuthGuard())
     @Get("/group-details-from-invite-link")
     async GroupDetailsFromInviteLink(
         @CurrentUser() user: any,
         @Query("token") token: string,
     ) {
-        return await this.ChatsService.GroupDetailsFromInviteLink(user ,token);
+        return await this.ChatsService.GroupDetailsFromInviteLink(user, token);
     }
-    
+
     @UseGuards(AuthGuard())
     @Post("/join-group-from-invite-link")
     async JoinGroupFromInviteLink(
         @CurrentUser() user: any,
         @Query("token") token: string,
     ) {
-        return await this.ChatsService.JoinGroupFromInviteLink(user ,token);
+        return await this.ChatsService.JoinGroupFromInviteLink(user, token);
+    }
+
+    @UseGuards(AuthGuard())
+    @Get("/getAllMemebersOfGroup")
+    async getAllMemebersOfGroup(
+        @CurrentUser() user: any,
+        @Query("skip") skip: number,
+        @Query("limit") limit: number,
+        @Query("belongsTo") belongsTo: string,
+    ) {
+        return await this.ChatsService.getAllMemebersOfGroup(user, skip, limit, belongsTo);
+    }
+
+    @UseGuards(AuthGuard())
+    @Delete("/remove-user-from-group")
+    async RemoveUserFromGroup(
+        @CurrentUser() user: any,
+        @Query("belongsTo") belongsTo: string,
+        @Query("userId") removableUSerID: string,
+        @Query("opponentName") opponentName: string,
+    ) {
+        return await this.ChatsService.RemoveUsersFromFroup(user, removableUSerID, belongsTo,opponentName)
     }
     
+    @UseGuards(AuthGuard())
+    @Delete("/leaveGroup")
+    async leaveGroup(
+        @CurrentUser() user: any,
+        @Query("belongsTo") belongsTo: string,
+    ) {
+        return await this.ChatsService.leaveGroup(user, belongsTo)
+    }
+
+    @UseGuards(AuthGuard())
+    @Put("/change-role-of-user")
+    async ChangeRoleOfUser(
+        @CurrentUser() user: any,
+        @Body("belongsTo") belongsTo: string,
+        @Body("userId") updatingUserID: string,
+        @Body("role") role: string,
+        @Body("opponentName") opponentName: string,
+    ) {
+        return await this.ChatsService.ChangeRoleOfUser(user, updatingUserID, belongsTo, role,opponentName)
+    }
+
 }

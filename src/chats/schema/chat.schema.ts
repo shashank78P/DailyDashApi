@@ -14,6 +14,7 @@ export enum EventType {
     CHAT_INITIATED = "CHAT_INITIATED",
     JOIN = "JOIN",
     LEFT = "LEFT",
+    REMOVED = "REMOVED",
     MODIFIED = "MODIFIED",
     CREATED = "CREATED",
 }

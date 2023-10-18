@@ -110,16 +110,19 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
         this.io.emit("hello", obj)
     }
 
-    @SubscribeMessage('joinChat')
-    handleJoinChatEvent(client: Socket, username: string) {
-        this.users[client.id] = username;
-        this.server.emit('userJoined', `${username} joined to chat`);
-        const obj = JSON.stringify(
-            {
-                "username": username,
-            }
-        )
-        this.io.emit("hello", obj);
+    @SubscribeMessage('joinMeet')
+    handleJoinChatEvent(client: Socket, payload: any) {
+        console.log("join request")
+        console.log(payload)
+        this.server.emit("1-notification" , payload);
+        this.io.socketsJoin(payload?.meetingId)
+    }
+    
+    @SubscribeMessage('1')
+    handleMeetEvent(client: Socket, payload: any) {
+        // this.server.emit("1-notification" , payload);
+        console.log("message 1" , payload)
+        this.io.to(payload?.meetingId).emit(payload)
     }
 
     // inividuals chats handler

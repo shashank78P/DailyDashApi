@@ -710,7 +710,7 @@ export class ChatsService {
                         {
                             groupId: new mongoose.Types.ObjectId(belongsTo),
                             memeberId: new mongoose.Types.ObjectId(usertToAdd),
-                            role: "MEMEBER",
+                            role: "MEMBER",
                             joined: "ADDED",
                             createdAt: new Date(),
                             updatedAt: new Date(),
@@ -719,6 +719,7 @@ export class ChatsService {
                     ])
                 })
             )
+            return { name: (user?.firstName || " ") + " " + (user?.lastName || ""), }
         } catch (err) {
             throw new InternalServerErrorException(err?.meessage)
         }
@@ -813,7 +814,7 @@ export class ChatsService {
                 [
                     {
                         $match: {
-                            memeberId: user?._id
+                            memeberId: new mongoose.Types.ObjectId(user?._id)
                         },
                     },
                     {
@@ -839,8 +840,15 @@ export class ChatsService {
                         $unwind: "$chat",
                     },
                     {
-                        $replaceRoot:
-                        {
+                        $lookup: {
+                            from: "filesystems",
+                            localField: "chat.fileId",
+                            foreignField: "_id",
+                            as: "file",
+                        },
+                    },
+                    {
+                        $replaceRoot: {
                             newRoot: {
                                 $mergeObjects: [
                                     "$$ROOT",
@@ -851,10 +859,19 @@ export class ChatsService {
                         },
                     },
                     {
+                        $set: {
+                            file: {
+                                $first: "$file",
+                            },
+                        },
+                    },
+                    {
                         $project: {
                             from: 1,
                             _id: 0,
-                            message: -1,
+                            message: 1,
+                            eventMessage: "$event.message",
+                            fileType: "$file.mimeType",
                             isInitiated: 1,
                             chatType: 1,
                             createdAt: "$chat.createdAt",
@@ -868,9 +885,9 @@ export class ChatsService {
                     },
                     {
                         $sort: {
-                            createdAt: -1
-                        }
-                    }
+                            createdAt: -1,
+                        },
+                    },
                 ],
                 { maxTimeMS: 60000, allowDiskUse: true }
             );
@@ -1136,7 +1153,7 @@ export class ChatsService {
                 {
                     groupId: new mongoose.Types.ObjectId(belongsTo),
                     memeberId: user?._id,
-                    role: "MEMEBER",
+                    role: "MEMBER",
                     joined: "LINK",
                     createdAt: new Date(),
                     updatedAt: new Date(),
@@ -1149,4 +1166,172 @@ export class ChatsService {
             throw new InternalServerErrorException(err?.message)
         }
     }
+
+    async getAllMemebersOfGroup(user, skip: number, limit: number, belongsTo: string) {
+        try {
+            const isUserPresent = await this.GroupMemberModel.findOne({
+                memeberId: user?._id,
+                groupId: new mongoose.Types.ObjectId(belongsTo)
+            })
+            if (!isUserPresent) {
+                throw new BadRequestException("You Don't have access to perform action")
+            }
+            const query = [
+                {
+                    $match:
+                    {
+                        groupId: new mongoose.Types.ObjectId(belongsTo)
+                    },
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "memeberId",
+                        foreignField: "_id",
+                        as: "users",
+                    },
+                },
+                {
+                    $unwind: "$users",
+                },
+                {
+                    $project: {
+                        groupId: 1,
+                        memeberId: 1,
+                        role: 1,
+                        createdAt: 1,
+                        name: {
+                            $concat: [
+                                {
+                                    $ifNull: ["$users.firstName", ""],
+                                },
+                                " ",
+                                {
+                                    $ifNull: ["$users.lastName", ""],
+                                },
+                            ],
+                        },
+                        profilePic: "$users.profilePic",
+                        email: "$users.email",
+                    },
+                },
+            ]
+            const totalCount = await this.GroupMemberModel.aggregate([
+                ...query,
+                {
+                    $count: "count"
+                }
+            ])
+            const data = await this.GroupMemberModel.aggregate([
+                ...query,
+                {
+                    $sort: { name: 1 }
+                },
+                {
+                    $skip: Number(skip)
+                },
+                {
+                    $limit: Number(limit)
+                },
+            ])
+            return { total: totalCount?.[0]?.count, data }
+        } catch (err) {
+            console.log(err)
+            throw new InternalServerErrorException(err?.messsage)
+        }
+    }
+
+    async RemoveUsersFromFroup(user: any, removableUSerID: string, belongsTo: string, opponentName: string) {
+        try {
+            if (!(removableUSerID && belongsTo)) {
+                throw new BadRequestException("Requirements not satisfied")
+            }
+            const isUserAsAPermission = await this.GroupMemberModel.findOne({
+                groupId: new mongoose.Types.ObjectId(belongsTo),
+                memeberId: user?._id,
+                role: "ADMIN"
+            })
+
+            if (!isUserAsAPermission) {
+                throw new BadRequestException("You don't have a access to perform this action")
+            }
+
+            await this.GroupMemberModel.deleteOne({
+                memeberId: new mongoose.Types.ObjectId(removableUSerID),
+                groupId: new mongoose.Types.ObjectId(belongsTo)
+            })
+            return {
+                name: (user?.firstName || " ") + " " + (user?.lastName || ""),
+                opponentName
+            }
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async leaveGroup(user: any, belongsTo: string) {
+        try {
+            if(!belongsTo){
+                throw new BadRequestException("Requiredments not satisfied")
+            }
+
+            const numberOfAdmin = await this.GroupMemberModel.find({
+                memeberId: {$ne : user?._id},
+                role : "ADMIN",
+                groupId: new mongoose.Types.ObjectId(belongsTo)
+            })
+
+            if(numberOfAdmin.length < 1){
+                throw new BadRequestException("Please make another member as ADMIN before leaving")
+            }
+            await this.GroupMemberModel.deleteOne({
+                memeberId: user?._id,
+                groupId: new mongoose.Types.ObjectId(belongsTo)
+            })
+            return { name: (user?.firstName || " ") + " " + (user?.lastName || "") }
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async ChangeRoleOfUser(user: any, updatingUserID: string, belongsTo: string, role: string, opponentName: string) {
+        try {
+            console.log(user)
+            if (!(updatingUserID && belongsTo && role)) {
+                throw new BadRequestException("Requirements not satisfied")
+            }
+
+            if (updatingUserID.toString() === user?._id?.toString()) {
+                throw new BadRequestException("You con't change your role")
+            }
+            const isUserAsAPermission = await this.GroupMemberModel.findOne({
+                groupId: new mongoose.Types.ObjectId(belongsTo),
+                memeberId: user?._id,
+                role: "ADMIN"
+            })
+
+
+            if (!isUserAsAPermission) {
+                throw new BadRequestException("You don't have a access to perform this action")
+            }
+
+            await this.GroupMemberModel.updateOne({
+                memeberId: new mongoose.Types.ObjectId(updatingUserID),
+                groupId: new mongoose.Types.ObjectId(belongsTo)
+            },
+                {
+                    $set: {
+                        role: role
+                    }
+                })
+            return {
+                role,
+                name: (user?.firstName || " ") + " " + (user?.lastName || ""),
+                opponentName
+            }
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
 }
+
