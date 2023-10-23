@@ -554,6 +554,31 @@ export class ChatsService {
         }
     }
 
+    async isUserIsMyContact(userId : string , opponentId : string) {
+        try {
+            if(!(userId && opponentId)){
+                throw new BadRequestException("Requirements are not satisfied")
+            }
+
+            const isInContact = await this?.ChatInitiatedModel.findOne({
+                $or : [ 
+                    {
+                        from : new mongoose.Types.ObjectId(userId),
+                        to : new mongoose.Types.ObjectId(opponentId),
+                    },
+                    {
+                        from : new mongoose.Types.ObjectId(opponentId),
+                        to : new mongoose.Types.ObjectId(userId),
+                    },
+                 ]
+            })
+
+            return isInContact ? true : false;
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
     async getUserOfMyContactExceptParticularGroup(user: any, limit: number, skip: number, belongsTo: string, search?: string) {
         try {
             if ((limit == undefined || skip == undefined) && belongsTo) {

@@ -113,3 +113,9 @@ export class FileBodyBto {
     @IsString()
     FileId: string
 }
+
+export class JoinMeet {
+    @IsEmpty()
+    @IsString()
+    meetingId : string
+}

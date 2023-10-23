@@ -1,5 +1,5 @@
 var cookieParser = require('socket.io-cookie');
-import { Logger, UseGuards , InternalServerErrorException , BadRequestException , UnauthorizedException} from "@nestjs/common";
+import { Logger, UseGuards, InternalServerErrorException, BadRequestException, UnauthorizedException, UsePipes, ValidationPipe } from "@nestjs/common";
 import {
     OnGatewayConnection,
     OnGatewayDisconnect,
@@ -14,6 +14,8 @@ import { AuthGuard } from "@nestjs/passport";
 import { CurrentUser } from "src/log-in-devices/currentUser.decorator";
 import { LogInDetailsService } from "src/log-in-devices/log-in-details.service";
 import { JwtService } from "@nestjs/jwt";
+import { JoinMeet } from "./types";
+import { MeetService } from "src/meet/meet.service";
 
 @WebSocketGateway({
     namespace: 'polls',
@@ -25,6 +27,7 @@ import { JwtService } from "@nestjs/jwt";
     },
 })
 
+// @UsePipes(ValidationPipe)
 export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 
     private readonly logger = new Logger(PollsGateway.name);
@@ -36,7 +39,8 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
     constructor(
         private jwtService: JwtService,
         private readonly ChatsService: ChatsService,
-        ) { }
+        private readonly MeetService: MeetService,
+    ) { }
     @WebSocketServer() io: Namespace;
 
     afterInit(server: any): void {
@@ -44,25 +48,25 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
         this.io.use(cookieParser)
     }
 
-    async verifyToken(client: Socket){
+    async verifyToken(client: Socket) {
         // this.LogInDetailsService?.generateToken()
-        try{
+        try {
             let token = client?.request?.headers?.cookie?.["authorization"]
 
-            console.log(token) 
-            if(!token){
+            console.log(token)
+            if (!token) {
                 throw new UnauthorizedException()
             }
-            
+
             token = token.replace('Bearer ', '')
-            console.log(token) 
-            const jwtDecodedData = await this.jwtService.verifyAsync(token ,{ secret : 'DailyDash51' } );
+            console.log(token)
+            const jwtDecodedData = await this.jwtService.verifyAsync(token, { secret: 'DailyDash51' });
             return jwtDecodedData
-        }catch(err){
+        } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }
     }
-    
+
     // this.io.use(function (socket, next) {
     //     console.log("socket?.request?.headers?.cookie");
     //     console.log(socket?.request?.headers?.cookie);
@@ -72,21 +76,7 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
 
         this.logger.log(`ws client with id: ${client.id} connected`);
         this.logger.debug(`Number of connected sockets: ${sockets.size} connected`);
-        this.logger.debug(`cookie`);
         this.logger.debug(client?.handshake?.auth?.userId);
-
-
-        // use cookies from some middleware
-        console.log("cookie")
-
-        const obj = JSON.stringify(
-            {
-                "id": client.id,
-                "users": this.users,
-                "connected": true
-            }
-        )
-        this.io.emit("hello", "this.server");
     }
 
     handleDisconnect(client: Socket) {
@@ -111,47 +101,70 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
     }
 
     @SubscribeMessage('joinMeet')
-    handleJoinChatEvent(client: Socket, payload: any) {
-        console.log("join request")
-        console.log(payload)
-        this.server.emit("1-notification" , payload);
-        this.io.socketsJoin(payload?.meetingId)
+    async handleJoinMeetEvent(client: Socket, payload: JoinMeet) {
+        const user = await this.verifyToken(client)
+        try {
+            const { meetingId } = payload
+            console.log("join request")
+            console.log(payload)
+            const result = await this.MeetService.AddParticipantsToRoom(user, meetingId);
+            console.log("result")
+            console.log(result)
+            console.log(String(user?.userId))
+            let participantsId = await this.MeetService.getAllParticipantsId(user?.userId, meetingId)
+            if (result) {
+                this.io.socketsJoin(meetingId);
+                this.server.emit(`${String(user?.userId)}-meet-join-notification`, { type : "establish-connect" , participants : participantsId});
+            } else {
+                this.server.emit(`${String(user?.userId)}-meet-join-notification`, { error: "Try again" });
+            }
+        } catch (err) {
+            this.server.emit(`${String(user?.userId)}-meet-join-notification`, { error: err?.message });
+        }
     }
-    
-    @SubscribeMessage('1')
+
+    @SubscribeMessage('stream')
     handleMeetEvent(client: Socket, payload: any) {
         // this.server.emit("1-notification" , payload);
-        console.log("message 1" , payload)
-        this.io.to(payload?.meetingId).emit(payload)
+        console.log("message 1", payload)
+        this.server.emit("stream", payload);
+        // this.io.to(payload?.meetingId).emit(payload)
+    }
+
+    @SubscribeMessage('joined-meeting')
+    handleJoinedMeetingEvent(client: Socket, payload: any) {
+        console.log("joined meeting")
+        console.log(payload)
+        this.server.emit(`${payload?.meetingId}-notify`, { type: "joined", userId: payload?.userId });
     }
 
     // inividuals chats handler
     @SubscribeMessage('INDIVIDUAL')
     async handleIndividualSendMessage(client: Socket, payload: any): Promise<void> {
-        try{
+        try {
             const { userId } = await this.verifyToken(client)
             // console.log(client?.handshake?.auth);
             console.log(payload)
             const newMessage = await this.ChatsService.createMessage(payload);
-            
-            this.server.emit(payload?.belongsTo,newMessage?.[0])
-            this.server.emit(`${payload?.to}ChatNotification`,{type : "CHAT"});
-        }catch(err){
+
+            this.server.emit(payload?.belongsTo, newMessage?.[0])
+            this.server.emit(`${payload?.to}ChatNotification`, { type: "CHAT" });
+        } catch (err) {
             console.log(err)
         }
     }
-    
+
     @SubscribeMessage('GROUP')
     async handleGroupSendMessage(client: Socket, payload: any): Promise<void> {
-        try{
+        try {
             const { userId } = await this.verifyToken(client)
             // console.log(client?.handshake?.auth);
-            const newMessage = await this.ChatsService.createGroupMessage(payload , userId);
+            const newMessage = await this.ChatsService.createGroupMessage(payload, userId);
             console.log(newMessage)
-            
-            this.server.emit(payload?.belongsTo,newMessage?.[0])
-            this.server.emit(`${payload?.belongsTo}ChatNotification`,{type : "GROUPCHAT"})
-        }catch(err){
+
+            this.server.emit(payload?.belongsTo, newMessage?.[0])
+            this.server.emit(`${payload?.belongsTo}ChatNotification`, { type: "GROUPCHAT" })
+        } catch (err) {
             console.log(err)
         }
     }

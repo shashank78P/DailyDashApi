@@ -14,6 +14,9 @@ import { PollsGateway } from './chats/polls.gateway';
 import { corsMiddleware } from './middleware/cors.middleware'; // Import the middleware
 import { ChatsModule } from './chats/chats.module';
 import { JwtModule, JwtService } from '@nestjs/jwt';
+import { MeetService } from './meet/meet.service';
+import { MeetController } from './meet/meet.controller';
+import { MeetsModule } from './meet/meet.module';
 
 // password
 // KTnUhKukTZ9n1fhf
@@ -30,6 +33,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
     MailServiceModule,
     FileSystemModule,
     ChatsModule,
+    MeetsModule,
     JwtModule.register(
       {
         secret: "DailyDash51",
@@ -37,9 +41,9 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
           expiresIn: "1d",
         }
       }
-    )
+    ),
   ],
-  controllers: [AppController, TaskManagementController],
+  controllers: [AppController, TaskManagementController ],
   providers: [AppService, TaskManagementService, PollsGateway, corsMiddleware ,JwtService],
 })
 export class AppModule {
