@@ -105,12 +105,7 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
         const user = await this.verifyToken(client)
         try {
             const { meetingId } = payload
-            console.log("join request")
-            console.log(payload)
             const result = await this.MeetService.AddParticipantsToRoom(user, meetingId);
-            console.log("result")
-            console.log(result)
-            console.log(String(user?.userId))
             let participantsId = await this.MeetService.getAllParticipantsId(user?.userId, meetingId)
             if (result) {
                 this.io.socketsJoin(meetingId);
@@ -120,6 +115,18 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
             }
         } catch (err) {
             this.server.emit(`${String(user?.userId)}-meet-join-notification`, { error: err?.message });
+        }
+    }
+    
+    @SubscribeMessage('leaveMeet')
+    async handleLeaveMeetEvent(client: Socket, payload: JoinMeet) {
+        const user = await this.verifyToken(client)
+        const { meetingId } = payload
+        try {
+            const result = await this.MeetService.leaveMeetingRoom(user?.userId, meetingId);
+            client.broadcast.emit(`${meetingId}-notify` ,{type : "participants-left-meeting", leftUserId : user?.userId } )
+        } catch (err) {
+            this.server.emit(`${meetingId}-notify`, { error: err?.message });
         }
     }
 

@@ -151,9 +151,9 @@ export class MeetService {
                 throw new NotFoundException("No meeting with this id")
             }
 
-            const isAlreadyAdded = await this.MeetingParticipants.findOne({belongsTo: new mongoose.Types.ObjectId(meetingId) , participantId : new mongoose.Types.ObjectId(user?.userId)})
+            const isAlreadyAdded = await this.MeetingParticipants.findOne({ belongsTo: new mongoose.Types.ObjectId(meetingId), participantId: new mongoose.Types.ObjectId(user?.userId), isAttended: true })
 
-            if(isAlreadyAdded){
+            if (isAlreadyAdded) {
                 return isAlreadyAdded
             }
 
@@ -165,7 +165,7 @@ export class MeetService {
                     {
                         $set: {
                             isAttended: true,
-                            isInMeeting : true,
+                            isInMeeting: true,
                         }
                     }
                 )
@@ -181,7 +181,7 @@ export class MeetService {
                 {
                     participantId: new mongoose.Types.ObjectId(user?.userId),
                     isAttended: true,
-                    isInMeeting:true,
+                    isInMeeting: true,
                     belongsTo: new mongoose.Types.ObjectId(meetingId)
                 }
             ])
@@ -199,16 +199,90 @@ export class MeetService {
             }
             return await this.MeetingParticipants.find(
                 {
-                    belongsTo : new mongoose.Types.ObjectId(meetingId),
-                    participantId : { $ne : new mongoose.Types.ObjectId(userId) },
-                    isInMeeting : true
+                    belongsTo: new mongoose.Types.ObjectId(meetingId),
+                    participantId: { $ne: new mongoose.Types.ObjectId(userId) },
+                    isInMeeting: true
                 },
                 {
-                    participantId : 1,
+                    participantId: 1,
                 }
             )
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async getAllActiveParticipants(user: any, meetingId) {
+        try {
+            if (!meetingId) {
+                throw new BadRequestException("Requirements are not statisfied");
+            }
+            console.log(user?._id)
+            return await this.MeetingParticipants.aggregate(
+                [
+                    {
+                        $match: {
+                            belongsTo: new mongoose.Types.ObjectId(meetingId),
+                            participantId: { $ne: user._id },
+                            isInMeeting: true
+                        },
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "participantId",
+                            foreignField: "_id",
+                            as: "user",
+                        },
+                    },
+                    {
+                        $unwind: "$user",
+                    },
+                    {
+                        $project: {
+                            participantId: 1,
+                            belongsTo: 1,
+                            isAttended: 1,
+                            isInMeeting: 1,
+                            createdAt: 1,
+                            userName: {
+                                $concat: [
+                                    {
+                                        $ifNull: ["$user.firstName", " "],
+                                    },
+                                    " ",
+                                    {
+                                        $ifNull: ["$user.lastName", " "],
+                                    },
+                                ],
+                            },
+                            userPic: "$user.profilePic",
+                            emial: "$user.email",
+                        },
+                    },
+                ]
+            )
+        } catch (err: any) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async leaveMeetingRoom(userId: string, meetingId: string) {
+        try {
+            return await this.MeetingParticipants.updateOne(
+                {
+                    _id : new mongoose.Types.ObjectId(meetingId),
+                    participantId : new mongoose.Types.ObjectId(userId),
+                },
+                {
+                    $set : {
+                        isInMeeting : false,
+                        updatedAt : new Date()
+                    }
+                }
+            )
+        } catch (err) {
+            new InternalServerErrorException(err?.message)
         }
     }
 }
