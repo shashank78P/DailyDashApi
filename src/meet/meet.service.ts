@@ -153,14 +153,10 @@ export class MeetService {
 
             const isAlreadyAdded = await this.MeetingParticipants.findOne({ belongsTo: new mongoose.Types.ObjectId(meetingId), participantId: new mongoose.Types.ObjectId(user?.userId), isAttended: true })
 
-            if (isAlreadyAdded) {
-                return isAlreadyAdded
-            }
-
-            if (meetingDetails?.whoCanJoin == "MANUALLY_ADDED") {
-                const result = await this.MeetingParticipants.updateOne({
+            if (meetingDetails?.whoCanJoin == "MANUALLY_ADDED" || isAlreadyAdded) {
+                await this.MeetingParticipants.updateOne({
                     belongsTo: new mongoose.Types.ObjectId(meetingId),
-                    participantId: user?._id
+                    participantId: new mongoose.Types.ObjectId(user?.userId)
                 },
                     {
                         $set: {
@@ -169,7 +165,7 @@ export class MeetService {
                         }
                     }
                 )
-                return result;
+                return await this.MeetingParticipants.findOne({ belongsTo: new mongoose.Types.ObjectId(meetingId), participantId: new mongoose.Types.ObjectId(user?.userId),})
             }
             if (meetingDetails?.whoCanJoin == "ONLY_OF_MY_CONTACT") {
                 const isInContact = await this.chatService.isUserIsMyContact(String(meetingDetails?.createdBy), user?._id)
@@ -212,7 +208,7 @@ export class MeetService {
         }
     }
 
-    async getAllActiveParticipants(user: any, meetingId) {
+    async getAllActiveOrNonActiveParticipants(user: any, meetingId , isActive : string) {
         try {
             if (!meetingId) {
                 throw new BadRequestException("Requirements are not statisfied");
@@ -224,7 +220,7 @@ export class MeetService {
                         $match: {
                             belongsTo: new mongoose.Types.ObjectId(meetingId),
                             participantId: { $ne: user._id },
-                            isInMeeting: true
+                            isInMeeting: (isActive.toString() === "true")
                         },
                     },
                     {
@@ -269,9 +265,10 @@ export class MeetService {
 
     async leaveMeetingRoom(userId: string, meetingId: string) {
         try {
+            console.log(userId)
             return await this.MeetingParticipants.updateOne(
                 {
-                    _id : new mongoose.Types.ObjectId(meetingId),
+                    belongsTo : new mongoose.Types.ObjectId(meetingId),
                     participantId : new mongoose.Types.ObjectId(userId),
                 },
                 {

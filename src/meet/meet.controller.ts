@@ -32,12 +32,13 @@ export class MeetController {
     }
 
     @UseGuards(AuthGuard())
-    @Get("get-all-active-participants")
+    @Get("get-all-active-not-active-participants")
     async getAllParticipants(
         @Query("meetingId") meetingId: string,
+        @Query("isActive") isActive: string,
         @CurrentUser() user: any
     ) {
-        return await this.MeetService.getAllActiveParticipants(user , meetingId)
+        return await this.MeetService.getAllActiveOrNonActiveParticipants(user , meetingId , isActive)
     }
 
 
