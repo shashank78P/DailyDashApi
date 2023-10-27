@@ -163,3 +163,13 @@ export class _idDto {
     @IsNotEmpty()
     _id: string
 }
+
+export class invitationDetailsDto{
+    @IsEmail()
+    @IsNotEmpty()
+    email : string
+    
+    @IsString()
+    @IsNotEmpty()
+    invitedBy : string
+}

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DailyDash-(Meeting Invitation!!!)</title>
+</head>
+
+<body>
+    <h1>Daily Dash</h1>
+    <h3>Hello, <strong>
+            <%=email%>
+        </strong>
+        <br />
+    </h3>
+    <p>
+        <strong>
+            <%=createdBy%>
+        </strong>
+        has been created a scheduled a meeting<br />
+    </p>
+    <table style="text-align: start; padding: 2px;">
+        <tr style="">
+            <th>Title :</th>
+            <td>
+                <%=title%>
+            </td>
+        </tr>
+        <tr>
+            <th>Description :</th>
+            <td>
+                <%=description%>
+            </td>
+        </tr>
+        <tr>
+            <th>Scheduled At :</th>
+            <td>
+                <%=meetingDate%>
+            </td>
+        </tr>
+        <tr>
+            <th>Meeting Length :</th>
+            <td>
+                <%=meetingLength%>
+            </td>
+        </tr>
+    </table>
+    <br />
+
+    Join meeting using below link<br />
+    <%=link%><br />
+        <br />
+        <a href="<%=link%>" style="padding: 5px 10px; color : white; font-weight: 700; background-color: blue; margin: 10px;" >Join</a>
+
+</body>
+
+</html>

@@ -39,5 +39,16 @@ export class createMeetingDto {
 
     @IsArray()
     @IsOptional()
-    participantsList : Array<String>
+    participantsEmail : Array<String>
+}
+
+export class invitePeopleForMeetingDto{
+
+    @IsArray()
+    @IsNotEmpty()
+    invitingPropeList : string[]
+    
+    @IsString()
+    @IsNotEmpty()
+    meetingId : string
 }

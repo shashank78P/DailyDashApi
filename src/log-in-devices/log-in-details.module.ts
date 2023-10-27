@@ -10,6 +10,7 @@ import { JwtModule } from "@nestjs/jwt"
 import { PassportModule } from "@nestjs/passport"
 import { JwtStratery } from './jwt.stratergy';
 import { MailServiceModule } from 'src/mail-service/mail-service.module';
+import { InviteUsers, InviteUsersSchema } from 'src/users/schema/inviteUser.schema';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MailServiceModule } from 'src/mail-service/mail-service.module';
     // PassportModule,
     MongooseModule.forFeature([{ name: LogInDetails.name, schema: LogInDetailsSchema }]),
     MongooseModule.forFeature([{ name: Users.name, schema: UsersSchema }]),
+    MongooseModule.forFeature([{ name: InviteUsers.name, schema: InviteUsersSchema }]),
     UsersModule,
     MailServiceModule,
 

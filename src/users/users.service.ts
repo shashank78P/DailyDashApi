@@ -2,13 +2,15 @@ import { Injectable, InternalServerErrorException, BadRequestException, NotFound
 import { Users, UsersDocument } from './schema/users.schema';
 import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { UpdateUserDto, UserDataDto, SignUp, _idDto } from "./types.dto"
+import { UpdateUserDto, UserDataDto, SignUp, _idDto, invitationDetailsDto } from "./types.dto"
 import * as bcrypt from "bcryptjs"
+import { InviteUsers, InviteUsersDocument } from './schema/inviteUser.schema';
 
 @Injectable()
 export class UsersService {
     constructor(
         @InjectModel(Users.name) private UsersModel: Model<UsersDocument>,
+        @InjectModel(InviteUsers.name) private InviteUsersModel: Model<InviteUsersDocument>,
     ) { }
     async getUserByEmail(email: string) {
         try {
@@ -16,9 +18,6 @@ export class UsersService {
                 throw new BadRequestException("email required");
             }
             let result = await this.UsersModel.findOne({ email })
-            if (!result) {
-                throw new NotFoundException("No user found");
-            }
             return result;
         }
         catch (err) {
@@ -32,9 +31,9 @@ export class UsersService {
                 throw new BadRequestException("_id required");
             }
             let result = await this.UsersModel.findOne({ _id: new mongoose.Types.ObjectId(_id) } , { password : -1 , passwordResetId : -1 , firstName : 1, lastName:1})
-            if (!result) {
-                throw new NotFoundException("No user found");
-            }
+            // if (!result) {
+            //     throw new NotFoundException("No user found");
+            // }
             return result;
         }
         catch (err) {
@@ -91,6 +90,23 @@ export class UsersService {
             return result
         } catch (err) {
             throw new InternalServerErrorException(err?.message);
+        }
+    }
+
+    async inviteUser(user : any , invitationDetails : invitationDetailsDto){
+        try{
+            const { email ,invitedBy } = invitationDetails
+            if(!(email && invitedBy)){
+                throw new BadRequestException("Requirements are not matched")
+            }
+            return await this.InviteUsersModel.insertMany([
+                {
+                    email , 
+                    invitedBy : new mongoose.Types.ObjectId(invitedBy)
+                }
+            ])
+        }catch(err : any){
+            throw new InternalServerErrorException(err?.message)
         }
     }
 

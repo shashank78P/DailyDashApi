@@ -8,6 +8,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Meets, MeetsSchema } from './schema/meet.schema';
 import { MeetingParticipants, MeetingParticipantsSchema } from './schema/meetingParticipants.schema';
 import { ChatsModule } from 'src/chats/chats.module';
+import { MailServiceModule } from 'src/mail-service/mail-service.module';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { ChatsModule } from 'src/chats/chats.module';
         }),
         UsersModule,
         ChatsModule,
+        MailServiceModule,
         MongooseModule.forFeature([{name : Meets.name , schema : MeetsSchema}]),
         MongooseModule.forFeature([{name : MeetingParticipants.name , schema : MeetingParticipantsSchema}]),
         JwtModule.register(
