@@ -152,7 +152,8 @@ export class LogInDetailsService {
             httpOnly: true,
             secure: process.env.DEVELOPMENT, // Set to true to ensure the cookie is sent over HTTPS
             maxAge: Date.now() + 60 * 60,   // 1 hour
-            domain: process.env.FRONT_END_DOMAIN,
+            sameSite: 'lax',
+            // domain: process.env.FRONT_END_DOMAIN,
         })
         .json(cookieData)
         // 'daily-dash-git-final-shashank78p.vercel.app',
