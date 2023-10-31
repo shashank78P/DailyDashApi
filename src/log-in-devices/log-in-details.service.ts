@@ -150,12 +150,10 @@ export class LogInDetailsService {
             // secure: false,
             maxAge: Date.now() + 60 * 60,   //1hr
             domain: 'daily-dash.vercel.app',
-  secure: true // cookie will only be sent over HTTPS
+            secure: true
             // sameSite: "lax",
             // sameSite: "None",
             // domain: "localhost",
-            domain: 'daily-dash.vercel.app',
-            secure: true // cookie will only be sent over HTTPS
         })
             .json(cookieData)
     }
