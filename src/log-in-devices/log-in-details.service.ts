@@ -160,23 +160,29 @@ export class LogInDetailsService {
     async logIn(userData: UserDataForLoginIn, res: Response, req: Request) {
         try {
             const { password, email, os, browser } = userData;
+            console.log(userData)
             if (!email || !password) {
                 throw new BadRequestException("Requirements are not satisfied");
             }
             const isUserExist = await this.UsersModel.findOne({ email });
-
+            console.log(isUserExist)
+            
             if (!isUserExist) {
                 throw new BadRequestException("No user find with this email");
             }
-
+            if (!isUserExist?.password) {
+                throw new BadRequestException("U haven't set password yet!... set password and try later");
+            }
+            
             // comparing a password
-            const isPasswordMatched = await bcrypt.compare(password, isUserExist.password)
-
-
+            const isPasswordMatched = await bcrypt.compare(password, isUserExist?.password)
+            console.log(isPasswordMatched)
+            
             if (!isPasswordMatched) {
                 throw new InternalServerErrorException("Invalid login");
             }
             const logInId = await uuid()
+            console.log(logInId)
 
             let result = await this.createNewLogInDetails(isUserExist?._id, logInId, req, os, browser)
             // this.sendLogInAlert(isUserExist, email);
