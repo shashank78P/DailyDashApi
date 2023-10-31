@@ -500,4 +500,23 @@ export class MeetService {
             throw new InternalServerErrorException(err?.message)
         }
     }
+    
+    async getAListOfAllUserInMetting(userId : string){
+        try {
+            console.log(userId)
+            if(!(userId) ){
+                return []
+            }
+
+            const userIsInMeetingList = await this.MeetingParticipants.find({
+                participantId : new mongoose.Types.ObjectId(userId),
+                isInMeeting : true
+             })
+
+             return userIsInMeetingList;
+        } catch (err) {
+            console.log(err?.message)
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
 }

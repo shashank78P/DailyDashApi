@@ -150,12 +150,12 @@ export class LogInDetailsService {
 
         return res.cookie("authorization", `Bearer ${token}`, {
             httpOnly: true,
-            secure: true, // Set to true to ensure the cookie is sent over HTTPS
+            secure: process.env.DEVELOPMENT, // Set to true to ensure the cookie is sent over HTTPS
             maxAge: Date.now() + 60 * 60,   // 1 hour
-            domain: 'daily-dash-git-final-shashank78p.vercel.app',
-            sameSite: "None",
+            domain: process.env.FRONT_END_DOMAIN,
         })
-            .json(cookieData)
+        .json(cookieData)
+        // 'daily-dash-git-final-shashank78p.vercel.app',
     }
 
     // signing in with email and password

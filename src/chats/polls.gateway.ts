@@ -79,25 +79,25 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
         this.logger.debug(client?.handshake?.auth?.userId);
     }
 
-    handleDisconnect(client: Socket) {
-        const sockets = this.io.sockets;
-        console.log(`Client disconnected: ${client.id}`);
-        const userId = this.users[client.id];
-        this.logger.log(`ws client with id: ${client.id} dis-connected`);
-        if (userId) {
-            delete this.users[client.id];
-            this.server.emit('userLeft', userId);
-        }
-        const obj = JSON.stringify(
-            {
-                "id": client.id,
-                "users": this.users,
-                "connected": false
+    async handleDisconnect(client: Socket) {
+        try {
+            const sockets = this.io.sockets;
+            console.log(`Client disconnected: ${client.id}`);
+            const { user } = await this.verifyToken(client)
+            if (!user?.userId) {
+                return;
             }
-        )
-        // this?.io?.
-        // .request.headers.cookie.someCookie
-        this.io.emit("hello", obj)
+            const UserInMeetingList = await this.MeetService.getAListOfAllUserInMetting(user?.userId)
+
+            Promise.all(UserInMeetingList?.map(async (meeting, i) => {
+                if (meeting?.belongsTo) {
+                    await this.handleLeaveMeetEvent(client, { meetingId: meeting?.belongsTo?.toString() })
+                }
+            }))
+            this.logger.log(`ws client with id: ${client.id} dis-connected`);
+        } catch (err) {
+
+        }
     }
 
     @SubscribeMessage('joinMeet')
@@ -171,15 +171,15 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
                 this.server.emit(`${meetingId}-notify`, { type: "is-raise-my-hand", meetingId, userId: user?.userId, isRaiseMyHand })
             }
         } catch (err) {
-            
+
         }
     }
-    
+
     @SubscribeMessage('meeting-message')
     async handleMeetungMassagesEvent(client: Socket, payload: any) {
         try {
             const user = await this.verifyToken(client)
-            const { meetingId, message, createdAt, createdBy ,userId } = payload
+            const { meetingId, message, createdAt, createdBy, userId } = payload
             console.log(payload)
             if (!(userId === (user?.userId).toString())) {
                 return;
@@ -188,7 +188,7 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
             console.log(isExist)
             if (isExist) {
                 console.log("sending...")
-                client.broadcast.emit(`${meetingId}-notify`, { type: "message", meetingId, userId , createdBy, message, createdAt })
+                client.broadcast.emit(`${meetingId}-notify`, { type: "message", meetingId, userId, createdBy, message, createdAt })
             }
         } catch (err) {
             console.log(err)
