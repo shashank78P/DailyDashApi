@@ -41,7 +41,7 @@
     "googleapis": "^118.0.0",
     "jsonwebtoken": "^9.0.0",
     "jwt-decode": "^3.1.2",
-    "mongodb": "^6.2.0",
+    "mongodb": "4.1.1",
     "mongoose": "^7.3.1",
     "multer": "^1.4.5-lts.1",
     "nestjs": "^0.0.1",
