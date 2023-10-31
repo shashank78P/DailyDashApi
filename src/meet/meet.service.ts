@@ -60,7 +60,7 @@ export class MeetService {
                 return meet;
             }
 
-            await this.invitePeopleForMeeting(user, participantsEmail , meetingId)
+            await this.invitePeopleForMeeting(user, participantsEmail, meetingId)
             return meet;
 
         } catch (err) {
@@ -128,7 +128,7 @@ export class MeetService {
                                                 {
                                                     case: {
                                                         $eq: [
-                                                            "meetingLengthPararmeter",
+                                                            "$meetingLengthPararmeter",
                                                             "min",
                                                         ],
                                                     },
@@ -137,7 +137,25 @@ export class MeetService {
                                                 {
                                                     case: {
                                                         $eq: [
-                                                            "meetingLengthPararmeter",
+                                                            "$meetingLengthPararmeter",
+                                                            "day",
+                                                        ],
+                                                    },
+                                                    then: "day",
+                                                },
+                                                {
+                                                    case: {
+                                                        $eq: [
+                                                            "$meetingLengthPararmeter",
+                                                            "hr",
+                                                        ],
+                                                    },
+                                                    then: "hour",
+                                                },
+                                                {
+                                                    case: {
+                                                        $eq: [
+                                                            "$meetingLengthPararmeter",
                                                             "sec",
                                                         ],
                                                     },
@@ -146,14 +164,14 @@ export class MeetService {
                                                 {
                                                     case: {
                                                         $eq: [
-                                                            "meetingLengthPararmeter",
+                                                            "$meetingLengthPararmeter",
                                                             "mon",
                                                         ],
                                                     },
                                                     then: "month",
                                                 },
                                             ],
-                                            default: "minute",
+                                            default: "hour",
                                         },
                                     },
                                     amount: "$meetingLength",
@@ -420,12 +438,12 @@ export class MeetService {
         }
     }
 
-    async invitePeopleForMeeting(user, participantsEmail , meetingId) {
+    async invitePeopleForMeeting(user, participantsEmail, meetingId) {
         try {
-            
-            const meet = await this.MeetModel.findOne({_id : new mongoose.Types.ObjectId(meetingId) , createdBy : user?._id})
 
-            if(!meet){
+            const meet = await this.MeetModel.findOne({ _id: new mongoose.Types.ObjectId(meetingId), createdBy: user?._id })
+
+            if (!meet) {
                 throw new BadRequestException("You dont't have a acces to invite")
             }
             const userDetails = await this.UsersService.getUserById(user?._id?.toString())
@@ -457,6 +475,28 @@ export class MeetService {
                 })
             )
         } catch (err: any) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async isUserInMeeting(userId , meetingId){
+        try {
+            console.log(userId , meetingId)
+            if(!(userId && meetingId) ){
+                return false
+            }
+
+            const isInMeeting = await this.MeetingParticipants.findOne({ 
+                belongsTo : new mongoose.Types.ObjectId(meetingId),
+                participantId : new mongoose.Types.ObjectId(userId),
+                isInMeeting : true
+             })
+
+             console.log(isInMeeting)
+             
+             return isInMeeting ? true : false;
+        } catch (err) {
+            console.log(err?.message)
             throw new InternalServerErrorException(err?.message)
         }
     }

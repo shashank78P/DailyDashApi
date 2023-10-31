@@ -105,6 +105,8 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
         const user = await this.verifyToken(client)
         try {
             const { meetingId } = payload
+            console.log("join meeting request")
+            console.log(payload)
             const result = await this.MeetService.AddParticipantsToRoom(user, meetingId);
             let participantsId = await this.MeetService.getAllParticipantsId(user?.userId, meetingId)
             let { _id, firstName, lastName } = await this.usersService.getUserById(user?.userId)
@@ -144,11 +146,60 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
         }
     }
 
+    @SubscribeMessage('meeting-emoji-reactions')
+    async handleMeetingEmojiReactionsEvent(client: Socket, payload: any) {
+        try {
+            const user = await this.verifyToken(client)
+            const { meetingId, emoji } = payload
+            console.log(emoji)
+            const isExist = await this.MeetService.isUserInMeeting(user?.userId, meetingId)
+            if (isExist) {
+                client.broadcast.emit(`${meetingId}-notify`, { type: "emoji-reactions", meetingId, emoji, userId: user?.userId })
+            }
+        } catch (err) {
+
+        }
+    }
+
+    @SubscribeMessage('is-raise-my-hand')
+    async handleMeetingRaiseMyHandEvent(client: Socket, payload: any) {
+        try {
+            const user = await this.verifyToken(client)
+            const { meetingId, isRaiseMyHand } = payload
+            const isExist = await this.MeetService.isUserInMeeting(user?.userId, meetingId)
+            if (isExist) {
+                this.server.emit(`${meetingId}-notify`, { type: "is-raise-my-hand", meetingId, userId: user?.userId, isRaiseMyHand })
+            }
+        } catch (err) {
+            
+        }
+    }
+    
+    @SubscribeMessage('meeting-message')
+    async handleMeetungMassagesEvent(client: Socket, payload: any) {
+        try {
+            const user = await this.verifyToken(client)
+            const { meetingId, message, createdAt, createdBy ,userId } = payload
+            console.log(payload)
+            if (!(userId === (user?.userId).toString())) {
+                return;
+            }
+            const isExist = await this.MeetService.isUserInMeeting(userId, meetingId)
+            console.log(isExist)
+            if (isExist) {
+                console.log("sending...")
+                client.broadcast.emit(`${meetingId}-notify`, { type: "message", meetingId, userId , createdBy, message, createdAt })
+            }
+        } catch (err) {
+            console.log(err)
+        }
+    }
+
     @SubscribeMessage('sending-stream')
     async handleSendingMediaStreamEvent(client: Socket, payload: any) {
         const user = await this.verifyToken(client)
         const { type, meetingId, sendingTo, opponentId } = payload
-        this.server.emit(`${sendingTo}-notify`, { meetingId, sendingTo, opponentId, type });
+        this.server.emit(`${sendingTo}-notify`, { meetingId, sendingTo, opponentId, type })
     }
 
     @SubscribeMessage('stream')
