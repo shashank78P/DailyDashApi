@@ -144,7 +144,7 @@ export class LogInDetailsService {
         delete cookieData["password"];
         // res.user = cookieData
         console.log("setting cookie")
-        
+
         return res.cookie("authorization", `Bearer ${token}`, {
             httpOnly: true,
             // secure: false,
@@ -152,6 +152,8 @@ export class LogInDetailsService {
             // sameSite: "lax",
             // sameSite: "None",
             // domain: "localhost",
+            domain: 'daily-dash.vercel.app',
+            secure: true // cookie will only be sent over HTTPS
         })
             .json(cookieData)
     }
@@ -166,18 +168,18 @@ export class LogInDetailsService {
             }
             const isUserExist = await this.UsersModel.findOne({ email });
             console.log(isUserExist)
-            
+
             if (!isUserExist) {
                 throw new BadRequestException("No user find with this email");
             }
             if (!isUserExist?.password) {
                 throw new BadRequestException("U haven't set password yet!... set password and try later");
             }
-            
+
             // comparing a password
             const isPasswordMatched = await bcrypt.compare(password, isUserExist?.password)
             console.log(isPasswordMatched)
-            
+
             if (!isPasswordMatched) {
                 throw new InternalServerErrorException("Invalid login");
             }
