@@ -147,13 +147,10 @@ export class LogInDetailsService {
 
         return res.cookie("authorization", `Bearer ${token}`, {
             httpOnly: true,
-            // secure: false,
-            maxAge: Date.now() + 60 * 60,   //1hr
+            secure: true, // Set to true to ensure the cookie is sent over HTTPS
+            maxAge: Date.now() + 60 * 60,   // 1 hour
             domain: 'daily-dash.vercel.app',
-            secure: true
-            // sameSite: "lax",
-            // sameSite: "None",
-            // domain: "localhost",
+            sameSite: "None",
         })
             .json(cookieData)
     }
@@ -217,7 +214,8 @@ export class LogInDetailsService {
             let res = await this.UsersModel.updateOne({ _id: new mongoose.Types.ObjectId(isUserExist._id) }, { $set: { passwordResetId: passwordResetId, passwordResetUpdatedAt: new Date() } })
 
             const token = await this.generateToken({ userId: isUserExist?._id, passwordResetId }, "15m",);
-            let Link = `http://localhost:3000/reset-password?token=${token}`
+            let Link = `${process.env.FRONT_END}/reset-password?token=${token}`
+            console.log(Link)
 
             await this.mailService.sendMail(
                 email,
