@@ -145,6 +145,9 @@ export class LogInDetailsService {
         // res.user = cookieData
         console.log("setting cookie")
 
+        res.setHeader('Access-Control-Allow-Origin', 'https://daily-dash-git-final-shashank78p.vercel.app');
+
+
         return res.cookie("authorization", `Bearer ${token}`, {
             httpOnly: true,
             secure: true, // Set to true to ensure the cookie is sent over HTTPS
