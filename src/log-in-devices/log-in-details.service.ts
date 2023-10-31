@@ -152,7 +152,7 @@ export class LogInDetailsService {
             httpOnly: true,
             secure: process.env.DEVELOPMENT, // Set to true to ensure the cookie is sent over HTTPS
             maxAge: Date.now() + 60 * 60,   // 1 hour
-            sameSite: 'lax',
+            sameSite: 'None',
             // domain: process.env.FRONT_END_DOMAIN,
         })
         .json(cookieData)
