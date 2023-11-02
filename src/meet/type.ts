@@ -14,6 +14,7 @@ export const allowedMeetingLength = [
     "2 hr",
     "6 hr",
     "1 day",
+    "10 day",
 ]
 
 export class createMeetingDto {

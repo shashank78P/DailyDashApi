@@ -22,15 +22,25 @@ export class UsersController {
     @UseGuards(AuthGuard())
     @Get("/authme")
     async AuthMe(
-        @CurrentUser() user : any
+        @CurrentUser() user: any
     ) {
         return user;
     }
+
     @Get("/getUserByEmail")
     async getUserByEmail(
         @Query("email") email: string
     ) {
         return this.usersService.getUserByEmail(email);
+    }
+
+    @UseGuards(AuthGuard())
+    @Get("/get-user-profile-pic")
+    async getUserProfilePic(
+        @Query("_id") _id: string,
+        @CurrentUser() user: any
+    ) {
+        return this.usersService.getUserProfilePic(user, _id);
     }
 
     @Get("/getUserById")

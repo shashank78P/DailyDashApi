@@ -22,8 +22,8 @@ import { UsersService } from "src/users/users.service";
     namespace: 'polls',
     cors: {
         origin: [
-            'http://localhost:3000',
             'http://localhost:3001',
+            process.env.FRONT_END
         ]
     },
 })
@@ -83,7 +83,8 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
         try {
             const sockets = this.io.sockets;
             console.log(`Client disconnected: ${client.id}`);
-            const { user } = await this.verifyToken(client)
+            const user = await this.verifyToken(client)
+            console.log(user)
             if (!user?.userId) {
                 return;
             }

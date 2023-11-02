@@ -172,4 +172,8 @@ export class invitationDetailsDto{
     @IsString()
     @IsNotEmpty()
     invitedBy : string
+    
+    @IsString()
+    @IsNotEmpty()
+    belongsTo : string
 }

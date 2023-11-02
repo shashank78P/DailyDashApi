@@ -9,6 +9,7 @@ import { allowedMeetingLength, createMeetingDto, invitePeopleForMeetingDto } fro
 import { Users, UsersDocument } from 'src/users/schema/users.schema';
 import { ChatsService } from 'src/chats/chats.service';
 import { MailServiceService } from 'src/mail-service/mail-service.service';
+import MeetingDetailsQuery, { getParticipantsQuery } from './Query';
 
 @UsePipes(ValidationPipe)
 @Injectable()
@@ -41,7 +42,7 @@ export class MeetService {
                     whoCanJoin,
                     createdBy: user?._id
                 }
-            ])
+            ]);
 
             if (!Array.isArray(meet)) {
                 throw new BadRequestException("Something went wrong, please try after some minutes!!")
@@ -63,6 +64,70 @@ export class MeetService {
             await this.invitePeopleForMeeting(user, participantsEmail, meetingId)
             return meet;
 
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async updateMeeting(user: any, data: createMeetingDto, meetingId: string) {
+        try {
+            const { title, description, meetingDate, meetingLength, participantsEmail, whoCanJoin } = data;
+
+            if (!allowedMeetingLength.includes(meetingLength) || !meetingId) {
+                throw new BadRequestException("Requiredments not statisfied");
+            }
+            console.log(user?._id)
+
+            const isHeCreated = await this.MeetModel.findOne({
+                _id: new mongoose.Types.ObjectId(meetingId),
+                createdBy: user?._id,
+            })
+
+            if (!isHeCreated) {
+                throw new NotFoundException("You don't have an access to edit")
+            }
+
+            console.log(data);
+            const meet = await this.MeetModel.updateOne(
+                {
+                    _id: new mongoose.Types.ObjectId(meetingId),
+                },
+                {
+                    $set: {
+                        title,
+                        description,
+                        meetingDate,
+                        meetingLength,
+                        whoCanJoin,
+                        createdBy: user?._id
+                    }
+                }
+            )
+
+            console.log(meet);
+
+
+            return Promise.all(participantsEmail?.map(async (email: string) => {
+                const isHeExitsBefore = await this?.MeetingParticipants?.findOne({
+                    belongsTo: new mongoose.Types.ObjectId(meetingId),
+                    participantId: user?._id
+                })
+
+                if (!isHeExitsBefore) {
+                    const participantsDetails = await this.UsersService?.getUserByEmail(email)
+                    if (participantsDetails) {
+                        await this.MeetingParticipants.insertMany([
+                            {
+                                participantId: participantsDetails?._id,
+                                belongsTo: new mongoose.Types.ObjectId(meetingId)
+                            }
+                        ])
+                    } else {
+                        await this.UsersService.inviteUser(user, { email, invitedBy: user?._id, belongsTo: meetingId?.toString() })
+                    }
+                    await this.sendMeetingInvitationMail(email, meetingId, participantsDetails, isHeCreated)
+                }
+            }))
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }
@@ -378,41 +443,37 @@ export class MeetService {
                             isInMeeting: (isActive.toString() === "true")
                         },
                     },
-                    {
-                        $lookup: {
-                            from: "users",
-                            localField: "participantId",
-                            foreignField: "_id",
-                            as: "user",
-                        },
-                    },
-                    {
-                        $unwind: "$user",
-                    },
-                    {
-                        $project: {
-                            participantId: 1,
-                            belongsTo: 1,
-                            isAttended: 1,
-                            isInMeeting: 1,
-                            createdAt: 1,
-                            userName: {
-                                $concat: [
-                                    {
-                                        $ifNull: ["$user.firstName", " "],
-                                    },
-                                    " ",
-                                    {
-                                        $ifNull: ["$user.lastName", " "],
-                                    },
-                                ],
-                            },
-                            userPic: "$user.profilePic",
-                            emial: "$user.email",
-                        },
-                    },
+                    ...getParticipantsQuery
                 ]
             )
+        } catch (err: any) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+    async getAllAddedParticipants(user: any, meetingId) {
+        try {
+            if (!meetingId) {
+                throw new BadRequestException("Requirements are not statisfied");
+            }
+            console.log(user?._id)
+            const addParticipants = await this.MeetingParticipants.aggregate(
+                [
+                    {
+                        $match: {
+                            belongsTo: new mongoose.Types.ObjectId(meetingId),
+                            participantId: { $ne: user?._id },
+                        },
+                    },
+                    ...getParticipantsQuery
+                ]
+            )
+            const invitedParticipants = await this.UsersService.getInvitedUserBasedOnBelongsTo(user, meetingId)
+
+            return {
+                addParticipants,
+                invitedParticipants
+            }
+
         } catch (err: any) {
             throw new InternalServerErrorException(err?.message)
         }
@@ -438,6 +499,20 @@ export class MeetService {
         }
     }
 
+    async sendMeetingInvitationMail(email: string, meetingId: string, userDetails: any, meet: any) {
+        let text = "";
+        let subject = `Meeting invitation`
+        this.MailService.sendMail(email, subject, text, "MeetingInvite", {
+            link: `${process.env.FRONT_END}/meet/room?id=${meetingId}}`,
+            createdBy: userDetails?.firstName + " " + userDetails?.lastName,
+            title: meet?.title,
+            description: meet?.description ?? " ",
+            meetingDate: new Date(meet?.meetingDate),
+            meetingLength: meet?.meetingLength,
+            email
+        });
+    }
+
     async invitePeopleForMeeting(user, participantsEmail, meetingId) {
         try {
 
@@ -459,19 +534,9 @@ export class MeetService {
                         ])
                     }
                     else {
-                        await this.UsersService.inviteUser(user, { email, invitedBy: user?._id })
+                        await this.UsersService.inviteUser(user, { email, invitedBy: user?._id, belongsTo: meetingId })
                     }
-                    let text = "";
-                    let subject = `Meeting invitation`
-                    this.MailService.sendMail(email, subject, text, "MeetingInvite", {
-                        link: `${"http://localhost:3000/meet/room?id=" + meetingId}`,
-                        createdBy: userDetails?.firstName + " " + userDetails?.lastName,
-                        title: meet?.title,
-                        description: meet?.description ?? " ",
-                        meetingDate: new Date(meet?.meetingDate),
-                        meetingLength: meet?.meetingLength,
-                        email
-                    });
+                    await this.sendMeetingInvitationMail(email, meetingId, userDetails, meet)
                 })
             )
         } catch (err: any) {
@@ -479,43 +544,147 @@ export class MeetService {
         }
     }
 
-    async isUserInMeeting(userId , meetingId){
+    async isUserInMeeting(userId, meetingId) {
         try {
-            console.log(userId , meetingId)
-            if(!(userId && meetingId) ){
+            console.log(userId, meetingId)
+            if (!(userId && meetingId)) {
                 return false
             }
 
-            const isInMeeting = await this.MeetingParticipants.findOne({ 
-                belongsTo : new mongoose.Types.ObjectId(meetingId),
-                participantId : new mongoose.Types.ObjectId(userId),
-                isInMeeting : true
-             })
+            const isInMeeting = await this.MeetingParticipants.findOne({
+                belongsTo: new mongoose.Types.ObjectId(meetingId),
+                participantId: new mongoose.Types.ObjectId(userId),
+                isInMeeting: true
+            })
 
-             console.log(isInMeeting)
-             
-             return isInMeeting ? true : false;
+            console.log(isInMeeting)
+
+            return isInMeeting ? true : false;
         } catch (err) {
             console.log(err?.message)
             throw new InternalServerErrorException(err?.message)
         }
     }
-    
-    async getAListOfAllUserInMetting(userId : string){
+
+    async getAListOfAllUserInMetting(userId: string) {
         try {
             console.log(userId)
-            if(!(userId) ){
+            if (!(userId)) {
                 return []
             }
 
             const userIsInMeetingList = await this.MeetingParticipants.find({
-                participantId : new mongoose.Types.ObjectId(userId),
-                isInMeeting : true
-             })
+                participantId: new mongoose.Types.ObjectId(userId),
+                isInMeeting: true
+            })
 
-             return userIsInMeetingList;
+            return userIsInMeetingList;
         } catch (err) {
             console.log(err?.message)
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async getScheduledMeetingListOfMine(user: any, limit: number, page: number, search: string, sortBy: string, sortOrder: number, status: string) {
+        try {
+            const query: any = [{ meetingId: { $ne: null } }]
+            if (search) {
+                const regx = new RegExp(search);
+                const d = {
+                    $or: [
+                        { title: { $regex: regx } },
+                        { description: { $regex: regx } },
+                        { meetingDate: { $regex: regx } },
+                        { whoCanJoin: { $regex: regx } },
+                        { createdAt: { $regex: regx } },
+                        { createdBy: { $regex: regx } },
+                        { createrName: { $regex: regx } },
+                        { participantsCount: { $regex: regx } },
+                        { meetingLength: { $regex: regx } },
+                        { meetingLengthPararmeter: { $regex: regx } },
+                        { meetingEndingAt: { $regex: regx } },
+                        { meetingStatus: { $regex: regx } },
+                        { meetingId: { $regex: regx } },
+                    ],
+                }
+                console.log(d)
+                query.push(d)
+            }
+
+            const sortByQuery = []
+            if (sortBy) {
+                let q = {}
+                q[sortBy] = sortOrder
+                sortByQuery.push({ $sort: q })
+            }
+
+            if (status && status !== "All") {
+                query?.push({ meetingStatus: status })
+            }
+
+            const finalQuery = [
+                {
+                    $match:
+                        { participantId: user?._id }
+                },
+                ...MeetingDetailsQuery,
+                {
+                    $match:
+                    {
+                        $and: query
+                    },
+                },
+                ...sortByQuery,
+            ]
+
+            console.log(query)
+
+            const count = await this.MeetingParticipants.aggregate(
+                [
+                    ...finalQuery,
+                    {
+                        $count: "count"
+                    }
+                ],
+                { allowDiskUse: true },
+            )
+
+            const totalCount = count?.[0]?.["count"] ?? 0
+            const skipingNumber = Number(limit) * Number(page);
+
+            console.log(totalCount)
+            console.log(skipingNumber)
+            console.log(limit);
+            console.log(page)
+
+            const result = await this.MeetingParticipants.aggregate(
+                [
+                    ...finalQuery,
+                    {
+                        $skip: Number(skipingNumber) ?? 0
+                    },
+                    {
+                        $limit: Number(limit)
+                    }
+                ],
+                { allowDiskUse: true },
+            )
+
+            const finalResult = { total: totalCount, }
+
+            if (result?.[0]) {
+                finalResult["data"] = result
+            }
+            if (page - 1 >= 0) {
+                finalResult["prev"] = page - 1
+            }
+            if ((page + 1) * limit <= totalCount) {
+                finalResult["next"] = page + 1
+            }
+
+            return finalResult
+
+        } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }
     }

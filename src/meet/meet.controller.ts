@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, UseGuards, UsePipes, ValidationPipe, Query } from '@nestjs/common';
+import { Body, Controller, Post, Get, UseGuards, UsePipes, ValidationPipe, Query, Put } from '@nestjs/common';
 import { MeetService } from "./meet.service"
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from 'src/log-in-devices/currentUser.decorator';
@@ -23,6 +23,16 @@ export class MeetController {
     }
 
     @UseGuards(AuthGuard())
+    @Put("/update-meeting")
+    async updateMeeting(
+        @Body() data: createMeetingDto,
+        @CurrentUser() user: any,
+        @Query("meetingId") meetingId: string,
+    ) {
+        return await this.MeetService.updateMeeting(user, data, meetingId);
+    }
+
+    @UseGuards(AuthGuard())
     @Get("/get-meeting-details")
     async getMeetingDetails(
         @Query("meetingId") meetingId: string,
@@ -38,9 +48,18 @@ export class MeetController {
         @Query("isActive") isActive: string,
         @CurrentUser() user: any
     ) {
-        return await this.MeetService.getAllActiveOrNonActiveParticipants(user , meetingId , isActive)
+        return await this.MeetService.getAllActiveOrNonActiveParticipants(user, meetingId, isActive)
     }
-    
+
+    @UseGuards(AuthGuard())
+    @Get("get-added-participants")
+    async getAllAddedParticipants(
+        @Query("meetingId") meetingId: string,
+        @CurrentUser() user: any
+    ) {
+        return await this.MeetService.getAllAddedParticipants(user, meetingId)
+    }
+
     @UseGuards(AuthGuard())
     @Post("invite-people-for-meeting")
     async invitePeopleForMeeting(
@@ -48,8 +67,23 @@ export class MeetController {
         @CurrentUser() user: any
     ) {
         const { invitingPropeList, meetingId } = body;
-        return await this.MeetService.invitePeopleForMeeting(user ,invitingPropeList , meetingId)
+        return await this.MeetService.invitePeopleForMeeting(user, invitingPropeList, meetingId)
     }
+
+    @UseGuards(AuthGuard())
+    @Get("get-scheduled-meeting-list-of-mine")
+    async getScheduledMeetingListOfMine(
+        @Query("limit") limit: number,
+        @Query("page") page: number,
+        @Query("search") search: string,
+        @Query("status") status: string,
+        @Query("sortBy") sortBy: string,
+        @Query("sortOrder") sortOrder: number,
+        @CurrentUser() user: any
+    ) {
+        return await this.MeetService.getScheduledMeetingListOfMine(user, limit, page, search, sortBy, sortOrder, status)
+    }
+
 
 
 }

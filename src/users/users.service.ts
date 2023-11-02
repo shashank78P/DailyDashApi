@@ -25,12 +25,25 @@ export class UsersService {
         }
     }
 
+    async getUserProfilePic(user: any, _id: string) {
+        try {
+            if (!_id) {
+                throw new BadRequestException("_id required");
+            }
+            let result = await this.UsersModel.findOne({ _id: new mongoose.Types.ObjectId(_id) }, { _id: 0, profilePic: 1 })
+            return result;
+        }
+        catch (err) {
+            throw new InternalServerErrorException(err?.message);
+        }
+    }
+
     async getUserById(_id: string) {
         try {
             if (!_id) {
                 throw new BadRequestException("_id required");
             }
-            let result = await this.UsersModel.findOne({ _id: new mongoose.Types.ObjectId(_id) } , { password : -1 , passwordResetId : -1 , firstName : 1, lastName:1})
+            let result = await this.UsersModel.findOne({ _id: new mongoose.Types.ObjectId(_id) }, { password: -1, passwordResetId: -1, firstName: 1, lastName: 1 })
             // if (!result) {
             //     throw new NotFoundException("No user found");
             // }
@@ -93,19 +106,36 @@ export class UsersService {
         }
     }
 
-    async inviteUser(user : any , invitationDetails : invitationDetailsDto){
-        try{
-            const { email ,invitedBy } = invitationDetails
-            if(!(email && invitedBy)){
+    async inviteUser(user: any, invitationDetails: invitationDetailsDto) {
+        try {
+            const { email, invitedBy, belongsTo } = invitationDetails
+            if (!(email && invitedBy)) {
                 throw new BadRequestException("Requirements are not matched")
             }
             return await this.InviteUsersModel.insertMany([
                 {
-                    email , 
-                    invitedBy : new mongoose.Types.ObjectId(invitedBy)
+                    email,
+                    invitedBy: new mongoose.Types.ObjectId(invitedBy),
+                    belongsTo: new mongoose.Types.ObjectId(belongsTo)
                 }
             ])
-        }catch(err : any){
+        } catch (err: any) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async getInvitedUserBasedOnBelongsTo(user: any, belongsTo: string) {
+        try {
+            if (!belongsTo) {
+                throw new BadRequestException("Requirements are not matched")
+            }
+            return await this.InviteUsersModel.find(
+                {
+                    belongsTo: new mongoose.Types.ObjectId(belongsTo),
+                    invitationAccepted : false
+                }
+            )
+        } catch (err: any) {
             throw new InternalServerErrorException(err?.message)
         }
     }
