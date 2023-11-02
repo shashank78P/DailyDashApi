@@ -14,6 +14,9 @@ export class InviteUsers {
 
     @Prop({ required: true, type: mongoose.Types.ObjectId })
     invitedBy: mongoose.Types.ObjectId
+    
+    @Prop({ required: true, type: mongoose.Types.ObjectId })
+    belongsTo: mongoose.Types.ObjectId
 
     @Prop({ default: new Date() })
     createdAt: Date

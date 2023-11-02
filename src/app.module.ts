@@ -17,6 +17,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { MeetService } from './meet/meet.service';
 import { MeetController } from './meet/meet.controller';
 import { MeetsModule } from './meet/meet.module';
+import { BookMarksModule } from './book-marks/book-marks.module';
 
 // password
 // KTnUhKukTZ9n1fhf
@@ -42,6 +43,7 @@ import { MeetsModule } from './meet/meet.module';
         }
       }
     ),
+    BookMarksModule,
   ],
   controllers: [AppController, TaskManagementController ],
   providers: [AppService, TaskManagementService, PollsGateway, corsMiddleware ,JwtService],

@@ -107,25 +107,30 @@ export class MeetService {
             console.log(meet);
 
 
-            return Promise.all(participantsEmail?.map(async (email: string) => {
-                const isHeExitsBefore = await this?.MeetingParticipants?.findOne({
-                    belongsTo: new mongoose.Types.ObjectId(meetingId),
-                    participantId: user?._id
-                })
-
-                if (!isHeExitsBefore) {
-                    const participantsDetails = await this.UsersService?.getUserByEmail(email)
-                    if (participantsDetails) {
+            Promise.all(participantsEmail?.map(async (email: string) => {
+                console.log(email)
+                const participantsDetails = await this.UsersService?.getUserByEmail(email)
+                console.log(participantsDetails)
+                console.log(participantsDetails)
+                if (!participantsDetails) {
+                    const result = await this.UsersService.inviteUser(user, { email, invitedBy: user?._id, belongsTo: meetingId?.toString() })
+                    console.log("invite")
+                    console.log(result)
+                } else {
+                    const isHeExitsBefore = await this?.MeetingParticipants?.findOne({
+                        belongsTo: new mongoose.Types.ObjectId(meetingId),
+                        participantId: participantsDetails?._id
+                    })
+                    console.log(isHeExitsBefore)
+                    if (!isHeExitsBefore) {
                         await this.MeetingParticipants.insertMany([
                             {
-                                participantId: participantsDetails?._id,
-                                belongsTo: new mongoose.Types.ObjectId(meetingId)
+                                belongsTo : new mongoose.Types.ObjectId(meetingId),
+                                participantId : participantsDetails?._id
                             }
                         ])
-                    } else {
-                        await this.UsersService.inviteUser(user, { email, invitedBy: user?._id, belongsTo: meetingId?.toString() })
+                        await this.sendMeetingInvitationMail(email, meetingId, participantsDetails, isHeCreated)
                     }
-                    await this.sendMeetingInvitationMail(email, meetingId, participantsDetails, isHeCreated)
                 }
             }))
         } catch (err) {
@@ -461,7 +466,7 @@ export class MeetService {
                     {
                         $match: {
                             belongsTo: new mongoose.Types.ObjectId(meetingId),
-                            participantId: { $ne: user?._id },
+                            // participantId: { $ne: user?._id },
                         },
                     },
                     ...getParticipantsQuery
@@ -651,11 +656,6 @@ export class MeetService {
 
             const totalCount = count?.[0]?.["count"] ?? 0
             const skipingNumber = Number(limit) * Number(page);
-
-            console.log(totalCount)
-            console.log(skipingNumber)
-            console.log(limit);
-            console.log(page)
 
             const result = await this.MeetingParticipants.aggregate(
                 [

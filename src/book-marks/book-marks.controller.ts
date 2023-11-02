@@ -1,0 +1,57 @@
+import { Body, Controller, Get, Post, Put, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { createBookMarkDto } from './type';
+import { CurrentUser } from 'src/log-in-devices/currentUser.decorator';
+import { BookMarksService } from './book-marks.service';
+
+@Controller('book-marks')
+@UsePipes(ValidationPipe)
+export class BookMarksController {
+    constructor(
+        private readonly BookMarkServices: BookMarksService
+    ) { }
+
+    @UseGuards(AuthGuard())
+    @Post("/create-book-mark")
+    async createBookMark(
+        @Body() data: createBookMarkDto,
+        @CurrentUser() user: any
+    ) {
+        return await this.BookMarkServices.createBookMark(user, data)
+    }
+
+    @UseGuards(AuthGuard())
+    @Put("/update-book-mark")
+    async updateBookMark(
+        @Body() data: createBookMarkDto,
+        @CurrentUser() user: any,
+        @Query("bookMarkId") bookMarkId: string
+    ) {
+        return await this.BookMarkServices.updateBookMark(user, data, bookMarkId)
+    }
+
+    @UseGuards(AuthGuard())
+    @Get("/book-mark-pagination")
+    async BookMarkPagination(
+        @CurrentUser() user: any,
+        @Query("limit") limit: number,
+        @Query("page") page: number,
+        @Query("search") search: string,
+        @Query("status") status: string,
+        @Query("sortBy") sortBy: string,
+        @Query("sortOrder") sortOrder: number,
+        @Query("from") from: string,
+        @Query("to") to: string,
+    ) {
+        return await this.BookMarkServices.getBookMarkPagination(user, limit, page, search, sortBy, sortOrder, status, from, to)
+    }
+
+    @UseGuards(AuthGuard())
+    @Get("/book-mark-by-id")
+    async getBookMarkById(
+        @CurrentUser() user: any,
+        @Query("id") id: string,
+    ) {
+        return await this.BookMarkServices.getBookMarkById(user , id)
+    }
+}
