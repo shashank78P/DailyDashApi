@@ -161,6 +161,20 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
 
         }
     }
+    
+    @SubscribeMessage('screen-share-stop')
+    async handleScreenShareStopEvent(client: Socket, payload: any) {
+        try {
+            const user = await this.verifyToken(client)
+            const { meetingId,  } = payload
+            const isExist = await this.MeetService.isUserInMeeting(user?.userId, meetingId)
+            if (isExist) {
+                client.broadcast.emit(`${meetingId}-notify`, { type: "screen-share-stop", meetingId, userId: user?.userId })
+            }
+        } catch (err) {
+
+        }
+    }
 
     @SubscribeMessage('is-raise-my-hand')
     async handleMeetingRaiseMyHandEvent(client: Socket, payload: any) {
