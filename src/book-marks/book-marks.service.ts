@@ -3,21 +3,27 @@ import { BookMarkDocument, BookMarks } from './schema/book-marks.schema';
 import { JwtService } from '@nestjs/jwt';
 import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { createBookMarkDto } from './type';
+import { bookMarkBasicQuery, createBookMarkDto, updateBookMarkDto } from './type';
+import { FileSystemService } from 'src/file-system/file-system.service';
 
 @UsePipes(ValidationPipe)
 @Injectable()
 export class BookMarksService {
     constructor(
         private jwtService: JwtService,
+        private fileSystemService: FileSystemService,
         @InjectModel(BookMarks.name) private BookMarkModel: Model<BookMarkDocument>,
     ) { }
 
 
-    async createBookMark(user, data: createBookMarkDto) {
+    async createBookMark(user: any, data: createBookMarkDto) {
         try {
             const result = await this.BookMarkModel.insertMany([
-                data
+                {
+                    ...data,
+                    fileId: new mongoose.Types.ObjectId(data?.fileId),
+                    belongsTo: user?._id
+                }
             ])
             return result
         } catch (err: any) {
@@ -25,9 +31,9 @@ export class BookMarksService {
         }
     }
 
-    async updateBookMark(user, data: createBookMarkDto, bookMarkId: string) {
+    async updateBookMark(user, data: updateBookMarkDto, bookMarkId: string) {
         try {
-            const { description, fileId, hashTags, priority, title } = data;
+            const { description, fileId, hashTags, priority, title, isBookMarkImageChanged } = data;
             const isBookMarkIsExist = await this.BookMarkModel.findOne({
                 _id: new mongoose.Types.ObjectId(bookMarkId),
                 belongsTo: user?._id
@@ -36,32 +42,42 @@ export class BookMarksService {
             if (!isBookMarkIsExist) {
                 throw new NotFoundException("BookMark not found")
             }
+
+            const dataToBeUpdated = {
+                description,
+                hashTags,
+                priority,
+                title
+            }
+
+            if (isBookMarkImageChanged && fileId) {
+                dataToBeUpdated["fileId"] = new mongoose.Types.ObjectId(fileId)
+            }
+
             const result = await this.BookMarkModel.updateOne(
                 {
                     _id: new mongoose.Types.ObjectId(bookMarkId),
                     belongsTo: user?._id
                 },
                 {
-                    $set: {
-                        description, fileId, hashTags, priority, title
-                    }
-                }
-            )
+                    $set: dataToBeUpdated
+                })
             return result
         } catch (err: any) {
             throw new InternalServerErrorException(err?.message)
         }
     }
-    async getBookMarkPagination(user: any, limit: number, page: number, search: string, sortBy: string, sortOrder: number, status: string , from : string ,to : string) {
+
+    async getBookMarkPagination(user: any, limit: number, page: number, search: string, sortBy: string, sortOrder: number, status: string, from: string, to: string) {
         try {
 
-            const query: any = [{ meetingId: { $ne: null } }]
-            
-            if(from && new Date(from)){
-                query.push({ createdAt : { $gte : new Date(from) } })
+            const query: any = [{ _id: { $ne: null }, belongsTo: user?._id }]
+            console.log(from, to)
+            if (!["undefined", "null"].includes(from) && new Date(from)) {
+                query.push({ createdAt: { $gte: new Date(from) } })
             }
-            if(to && new Date(to)){
-                query.push({ createdAt : { $lte : new Date(to) } })
+            if (!["undefined", "null"].includes(to) && new Date(to)) {
+                query.push({ createdAt: { $lte: new Date(to) } })
             }
 
             if (search) {
@@ -78,18 +94,21 @@ export class BookMarksService {
                 console.log(d)
                 query.push(d)
             }
-            
+
 
             const sortByQuery = []
             if (sortBy) {
                 let q = {}
-                q[sortBy] = sortOrder
+                q[sortBy] = Number(sortOrder)
                 sortByQuery.push({ $sort: q })
             }
+            console.log(sortByQuery)
 
             if (status && status !== "All") {
                 query?.push({ priority: status })
             }
+
+            console.log(query)
 
             const finalQuery = [
                 {
@@ -103,17 +122,7 @@ export class BookMarksService {
                         $and: query
                     },
                 },
-                {
-                    $lookup: {
-                        from: "filesystems",
-                        localField: "fileId",
-                        foreignField: "_id",
-                        as: "file",
-                    },
-                },
-                {
-                    $unwind: "$file",
-                },
+                ...bookMarkBasicQuery,
                 ...sortByQuery
             ]
 
@@ -134,7 +143,7 @@ export class BookMarksService {
                 [
                     ...finalQuery,
                     {
-                        $skip: Number(skipingNumber) ?? 0
+                        $skip: Number(skipingNumber ?? 0)
                     },
                     {
                         $limit: Number(limit)
@@ -162,21 +171,42 @@ export class BookMarksService {
         }
     }
 
-    async getBookMarkById(user , id : string){
-        try{
-            if(!id){
+    async getBookMarkById(user, id: string) {
+        try {
+            if (!id) {
                 throw new BadRequestException("Requirements are not matrched")
             }
             const isHisBookMark = await this.BookMarkModel.findOne({
-                _id : new mongoose.Types.ObjectId(id),
-                belongsTo : user?._id
+                _id: new mongoose.Types.ObjectId(id),
+                belongsTo: user?._id
             })
 
-            if(!isHisBookMark){
+            if (!isHisBookMark) {
                 throw new NotFoundException("Document not found")
             }
-            return isHisBookMark;
-        }catch(err){
+
+            return this.BookMarkModel.aggregate([
+                {
+                    $match: {
+                        _id: new mongoose.Types.ObjectId(id),
+                        belongsTo: user?._id
+                    },
+                },
+                ...bookMarkBasicQuery
+            ])
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async deleteBookMark(user, _id) {
+        try {
+            const deleted = await this.BookMarkModel.findOneAndDelete({ _id: new mongoose.Types.ObjectId(_id) , belongsTo : user?._id })
+            if(!deleted){
+                throw new NotFoundException("Bookmark not found")
+            }
+            return deleted
+        } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }
     }

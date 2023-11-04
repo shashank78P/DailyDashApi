@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Post, Put, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Put, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { createBookMarkDto } from './type';
+import { createBookMarkDto, updateBookMarkDto } from './type';
 import { CurrentUser } from 'src/log-in-devices/currentUser.decorator';
 import { BookMarksService } from './book-marks.service';
 
@@ -23,7 +23,7 @@ export class BookMarksController {
     @UseGuards(AuthGuard())
     @Put("/update-book-mark")
     async updateBookMark(
-        @Body() data: createBookMarkDto,
+        @Body() data: updateBookMarkDto,
         @CurrentUser() user: any,
         @Query("bookMarkId") bookMarkId: string
     ) {
@@ -54,4 +54,14 @@ export class BookMarksController {
     ) {
         return await this.BookMarkServices.getBookMarkById(user , id)
     }
+    
+    @UseGuards(AuthGuard())
+    @Delete("/delete")
+    async deleteBookMarkById(
+        @CurrentUser() user: any,
+        @Query("_id") _id: string,
+    ) {
+        return await this.BookMarkServices.deleteBookMark(user ,_id)
+    }
+    
 }

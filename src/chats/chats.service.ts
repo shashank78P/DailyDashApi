@@ -790,7 +790,7 @@ export class ChatsService {
             ])
             const groupId = group?.[0]?._id
 
-            if (Array.isArray(users)) {
+            if (Array.isArray(users) && user?.length > 0) {
                 users = [...users, user?._id]
             } else {
                 users = [user?._id]
@@ -800,7 +800,8 @@ export class ChatsService {
                     return {
                         groupId,
                         memeberId: new mongoose.Types.ObjectId(ele),
-                        role: (ele == user?._id?.toString()) ? "ADMIN" : "MEMBER"
+                        role: (ele == user?._id?.toString()) ? "ADMIN" : "MEMBER",
+                        joinedBy: user?._id
                     }
                 })
             )
