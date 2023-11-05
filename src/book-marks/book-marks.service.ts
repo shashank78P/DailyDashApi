@@ -81,7 +81,7 @@ export class BookMarksService {
             }
 
             if (search) {
-                const regx = new RegExp(search);
+                const regx = new RegExp(search , "i");
                 const d = {
                     $or: [
                         { title: { $regex: regx } },

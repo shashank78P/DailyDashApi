@@ -25,9 +25,10 @@ export class ChatsController {
     @UseGuards(AuthGuard())
     @Get("/getAllInitiatedChatUserList")
     async getAllInitiatedChatUserList(
-        @CurrentUser() user: any
+        @CurrentUser() user: any,
+        @Query("search") search : string
     ) {
-        return await this.ChatsService.getAllInitiatedChatUserList(user);
+        return await this.ChatsService.getAllInitiatedChatUserList(user , search);
     }
 
     @UseGuards(AuthGuard())
@@ -36,7 +37,7 @@ export class ChatsController {
         @CurrentUser() user: any,
         @Query() queryParams: getAllChatDto,
     ) {
-        return await this.ChatsService.getAllChat(user, queryParams);
+        return await this.ChatsService.getAllChat(user, queryParams );
     }
 
     @UseGuards(AuthGuard())
@@ -112,8 +113,18 @@ export class ChatsController {
     @Get("/getAllInitiatedChatGroupList")
     async getAllInitiatedChatGroupList(
         @CurrentUser() user: any,
+        @Query("search") search : string
     ) {
-        return await this.ChatsService.getAllInitiatedChatGroupList(user);
+        return await this.ChatsService.getAllInitiatedChatGroupList(user , search);
+    }
+    
+    @UseGuards(AuthGuard())
+    @Get("/getAllopponentEmail")
+    async getAllopponentEmail(
+        @CurrentUser() user: any,
+        @Query("id") id : string
+    ) {
+        return await this.ChatsService.getAllopponentEmail(user , id);
     }
 
     @UseGuards(AuthGuard())

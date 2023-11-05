@@ -43,7 +43,7 @@ export class UsersService {
             if (!_id) {
                 throw new BadRequestException("_id required");
             }
-            let result = await this.UsersModel.findOne({ _id: new mongoose.Types.ObjectId(_id) }, { password: -1, passwordResetId: -1, firstName: 1, lastName: 1 })
+            let result = await this.UsersModel.findOne({ _id: new mongoose.Types.ObjectId(_id) }, { password: -1, passwordResetId: -1, firstName: 1, lastName: 1 ,email:1 })
             // if (!result) {
             //     throw new NotFoundException("No user found");
             // }

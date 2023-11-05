@@ -60,6 +60,9 @@ export class chats {
     
     @Prop({ type : mongoose.Types.ObjectId })
     fileId : mongoose.Types.ObjectId
+    
+    @Prop({ type : mongoose.Types.ObjectId })
+    meetId : mongoose.Types.ObjectId
 
     @Prop({ required: true, default: "INDIVIDUAL" })
     chatType: chatType

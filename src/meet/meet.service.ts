@@ -594,7 +594,7 @@ export class MeetService {
         try {
             const query: any = [{ meetingId: { $ne: null } }]
             if (search) {
-                const regx = new RegExp(search);
+                const regx = new RegExp(search , "i");
                 const d = {
                     $or: [
                         { title: { $regex: regx } },

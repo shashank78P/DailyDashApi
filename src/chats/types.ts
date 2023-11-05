@@ -11,6 +11,10 @@ export class getAllChatDto {
     @IsNotEmpty()
     @IsString()
     belongsTo: string
+    
+    @IsOptional()
+    @IsString()
+    search: string
 
     @IsNotEmpty()
     skip: string
@@ -24,6 +28,7 @@ export enum MessageType {
     AUDIO = "AUDIO",
     VIDEO = "VIDEO",
     IMAGE = "IMAGE",
+    MEET = "MEET",
 }
 
 export class eventDto {
