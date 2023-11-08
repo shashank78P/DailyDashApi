@@ -42,7 +42,7 @@ export class FileSystemService {
         }
         )
     }
-    async uploadFile(user , file) {
+    async uploadFile(user, file) {
         try {
             console.log(file)
             const { mimetype, filename } = file;
@@ -72,9 +72,9 @@ export class FileSystemService {
             if (!id) {
                 throw new BadRequestException("Upload failed")
             }
-            await this.generatePublicUrl(user , id)
-            const fileLink = await this.getFileLinkById(user , id);
-            let result = await this.FileSystemModel.insertMany([{ FileId: id, mimeType, FileName: name, link: fileLink?.webContentLink , createdBy : user?._id }])
+            await this.generatePublicUrl(user, id)
+            const fileLink = await this.getFileLinkById(user, id);
+            let result = await this.FileSystemModel.insertMany([{ FileId: id, mimeType, FileName: name, link: fileLink?.webContentLink, createdBy: user?._id }])
             return result;
 
         } catch (err) {
@@ -83,14 +83,14 @@ export class FileSystemService {
         }
     }
 
-    async uploadFileAndGetUrl(user , file) {
+    async uploadFileAndGetUrl(user, file) {
         try {
-            const result = await this.uploadFile(user , file);
+            const result = await this.uploadFile(user, file);
 
             const fileId: String = result?.[0]?.FileId
             if (fileId) {
-                await this.generatePublicUrl(user , fileId)
-                const link = await this.getFileLinkById(user , fileId)
+                await this.generatePublicUrl(user, fileId)
+                const link = await this.getFileLinkById(user, fileId)
                 return { ...link, fileId }
             } else {
                 throw new BadRequestException("error in upload")
@@ -100,7 +100,7 @@ export class FileSystemService {
         }
     }
 
-    async uploadFileToLocal(user , file) {
+    async uploadFileToLocal(user, file) {
         try {
             storage: diskStorage({
                 destination: './uploads',
@@ -117,18 +117,18 @@ export class FileSystemService {
         }
     }
 
-    async deleteFile(user , fileId) {
+    async deleteFile(user, fileId) {
         try {
             console.log("deleting file")
             console.log(fileId)
-            const file = await this.FileSystemModel.findOne({ _id : new mongoose.Types.ObjectId(fileId) })
+            const file = await this.FileSystemModel.findOne({ _id: new mongoose.Types.ObjectId(fileId) })
             console.log(file)
-            if(file?.FileId){
-                await this.FileSystemModel.deleteOne({ _id : new mongoose.Types.ObjectId(fileId) })
+            if (file?.FileId) {
+                await this.FileSystemModel.deleteOne({ _id: new mongoose.Types.ObjectId(fileId) })
             }
-            
+
             const result = await this.drive.files.delete({
-                fileId : file?.FileId
+                fileId: file?.FileId
             })
             console.log(result)
             console.log("deleted file")
@@ -138,7 +138,7 @@ export class FileSystemService {
         }
     }
 
-    async generatePublicUrl(user , fileId: String) {
+    async generatePublicUrl(user, fileId: String) {
         try {
 
             const result = await this.drive.permissions.create({
@@ -156,7 +156,7 @@ export class FileSystemService {
         }
     }
 
-    async getFileLinkById(user , fileId) {
+    async getFileLinkById(user, fileId) {
         try {
 
             const result = await this.drive.files.get({
@@ -211,7 +211,7 @@ export class FileSystemService {
     //     }
     // }
 
-    async uploadVideoBase64Data(user , body: any) {
+    async uploadVideoBase64Data(user, body: any) {
         try {
             const data = body?.file?.replace(/^data:video\/mp4;base64,/, '');
 
@@ -245,9 +245,16 @@ export class FileSystemService {
             if (!id) {
                 throw new BadRequestException("Not uploaded successfully")
             }
-            await this.generatePublicUrl(user , id)
-            const fileLink = await this.getFileLinkById(user , id);
-            const result = await this.FileSystemModel.insertMany([{ FileId: id, mimeType, FileName: name, link: fileLink?.webContentLink }])
+            await this.generatePublicUrl(user, id)
+            const fileLink = await this.getFileLinkById(user, id);
+            const result = await this.FileSystemModel.insertMany([{
+                FileId: id,
+                mimeType,
+                FileName: name,
+                link: fileLink?.webContentLink,
+                uploadedBy : user?._id,
+                // belongsTo : 
+            }])
             return result;
 
         } catch (err) {
@@ -255,7 +262,7 @@ export class FileSystemService {
         }
     }
 
-    async uploadAudioBase64Data(user ,body: any) {
+    async uploadAudioBase64Data(user, body: any) {
         try {
             const data = body?.file?.replace(/^data:audio\/wav;base64,/, '');
 
@@ -290,10 +297,21 @@ export class FileSystemService {
             if (!id) {
                 throw new BadRequestException("Not uploaded successfully")
             }
-            await this.generatePublicUrl(user , id)
-            const fileLink = await this.getFileLinkById(user , id);
+            await this.generatePublicUrl(user, id)
+            const fileLink = await this.getFileLinkById(user, id);
             const result = await this.FileSystemModel.insertMany([{ FileId: id, mimeType, FileName: name, link: fileLink?.webContentLink }])
             return result;
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async getFileById(userId: string, fileId: string) {
+        try {
+            return await this.FileSystemModel.findOne({
+                _id: new mongoose.Types.ObjectId(fileId) ,
+                uploadedBy : new mongoose.Types.ObjectId(userId)
+            })
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }

@@ -35,6 +35,9 @@ export class FileSystem {
     updatedAt: Date
 
     @Prop()
+    uploadedBy: mongoose.Schema.Types.ObjectId
+    
+    @Prop()
     belongsTo: mongoose.Schema.Types.ObjectId
 
     @Prop()

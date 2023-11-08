@@ -419,7 +419,7 @@ export class ChatsService {
             from: new mongoose.Types.ObjectId(userId),
             to: new mongoose.Types.ObjectId(to),
             message,
-            messageType,
+            messageType: messageType?.toUpperCase(),
             belongsTo: new mongoose.Types.ObjectId(belongsTo)
         }
 
@@ -448,7 +448,41 @@ export class ChatsService {
                 }
             }
         )
-        return result
+
+        if (result?.[0]?.fileId) {
+            return await this.chatsModel.aggregate([
+                {
+                    $match: {
+                        _id: result?.[0]?._id,
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "filesystems",
+                        localField: "fileId",
+                        foreignField: "_id",
+                        as: "file"
+                    }
+                },
+                {
+                    $project: {
+                        _id: "$_id",
+                        from: "$from",
+                        to: "$to",
+                        isInitiated: "$isInitiated",
+                        belongsTo: "$belongsTo",
+                        createdAt: "$createdAt",
+                        updatedAt: "$updatedAt",
+                        message: "$message",
+                        messageType: "$messageType",
+                        fileId: "$fileId",
+                        file: "$file",
+                        event: "$event",
+                    }
+                }
+            ])
+        }
+        return result;
     }
 
     async setReadmessages(user, belongsTo, type: string) {

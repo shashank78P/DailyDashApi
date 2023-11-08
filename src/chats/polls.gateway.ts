@@ -161,12 +161,12 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
 
         }
     }
-    
+
     @SubscribeMessage('screen-share-stop')
     async handleScreenShareStopEvent(client: Socket, payload: any) {
         try {
             const user = await this.verifyToken(client)
-            const { meetingId,  } = payload
+            const { meetingId, } = payload
             const isExist = await this.MeetService.isUserInMeeting(user?.userId, meetingId)
             if (isExist) {
                 client.broadcast.emit(`${meetingId}-notify`, { type: "screen-share-stop", meetingId, userId: user?.userId })
@@ -238,9 +238,10 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
         try {
             const { userId } = await this.verifyToken(client)
             // console.log(client?.handshake?.auth);
+            console.log("=================================")
+            console.log("Requested for handel individual send message")
             console.log(payload)
             const newMessage = await this.ChatsService.createMessage(payload);
-
             this.server.emit(payload?.belongsTo, newMessage?.[0])
             this.server.emit(`${payload?.to}ChatNotification`, { type: "CHAT" });
         } catch (err) {
