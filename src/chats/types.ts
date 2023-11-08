@@ -11,7 +11,7 @@ export class getAllChatDto {
     @IsNotEmpty()
     @IsString()
     belongsTo: string
-    
+
     @IsOptional()
     @IsString()
     search: string
@@ -33,10 +33,10 @@ export enum MessageType {
 
 export class eventDto {
     @IsString()
-    type : EventType
+    type: EventType
 
     @IsString()
-    message : string
+    message: string
 }
 
 export class addChatDto {
@@ -46,14 +46,18 @@ export class addChatDto {
 
     @IsString()
     message: string
-    
+
     @IsNotEmpty()
     @IsString()
     messageType: MessageType
-    
+
     @IsOptional()
     @IsString()
     fileId: string
+
+    @IsOptional()
+    @IsString()
+    meetId: string
 
     @IsNotEmpty()
     @IsString()
@@ -62,8 +66,8 @@ export class addChatDto {
     @IsNotEmpty()
     @IsString()
     to: string
-    
-    event : eventDto
+
+    event: eventDto
 }
 
 export class createGroupDto {
@@ -122,5 +126,15 @@ export class FileBodyBto {
 export class JoinMeet {
     @IsEmpty()
     @IsString()
-    meetingId : string
+    meetingId: string
+}
+
+export class isAdminDto {
+    @IsNotEmpty()
+    @IsString()
+    belongsTo: string
+
+    @IsNotEmpty()
+    @IsString()
+    type: string
 }

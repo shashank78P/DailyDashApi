@@ -216,5 +216,15 @@ export class ChatsController {
     ) {
         return await this.ChatsService.ChangeRoleOfUser(user, updatingUserID, belongsTo, role,opponentName)
     }
+    
+    // @UseGuards(AuthGuard())
+    // @Delete("/delete-group")
+    // async DeleteGroup(
+    //     @CurrentUser() user: any,
+    //     @Query("belongsTo") belongsTo: string,
+    //     @Query("type") type: string,
+    // ) {
+    //     return await this.ChatsService.DeleteGroup(user, belongsTo ,type)
+    // }
 
 }

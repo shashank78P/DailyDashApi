@@ -10,12 +10,14 @@ import { GroupMember, GroupMemberDocument } from './schema/GroupMember.scheme';
 import { promises } from 'dns';
 import { CurrentUser } from 'src/log-in-devices/currentUser.decorator';
 import { JwtService } from '@nestjs/jwt';
+import { FileSystemService } from 'src/file-system/file-system.service';
 
 @UsePipes(ValidationPipe)
 @Injectable()
 export class ChatsService {
     constructor(
         private readonly UsersService: UsersService,
+        private readonly FileSystemService: FileSystemService,
         private jwtService: JwtService,
         @InjectModel(chats.name) private chatsModel: Model<chatsDocument>,
         @InjectModel(ChatInitiated.name) private ChatInitiatedModel: Model<ChatInitiatedDocument>,
@@ -26,6 +28,9 @@ export class ChatsService {
         try {
             const { email } = data;
             let result = await this.UsersService.getUserByEmail(email);
+            if (!result) {
+                throw new BadRequestException("No user exist with this email!!!");
+            }
             if (result && result?._id.toString() == user?._id.toString()) {
                 throw new BadRequestException("You con't intiated a chat");
             }
@@ -99,6 +104,64 @@ export class ChatsService {
                             ]
                         }
                     },
+                    // {
+                    //     $lookup: {
+                    //         from: "chats",
+                    //         localField: "lastChatMessageId",
+                    //         foreignField: "_id",
+                    //         as: "result",
+                    //     },
+                    // },
+                    // {
+                    //     $unwind: "$result",
+                    // },
+                    // {
+                    //     $addFields: {
+                    //         opponent: {
+                    //             $cond: {
+                    //                 if: {
+                    //                     $eq: [
+                    //                         "$from",
+                    //                         userId,
+                    //                     ],
+                    //                 },
+                    //                 then: "$to",
+                    //                 else: "$from",
+                    //             },
+                    //         },
+                    //     },
+                    // },
+                    // {
+                    //     $lookup: {
+                    //         from: "users",
+                    //         localField: "opponent",
+                    //         foreignField: "_id",
+                    //         as: "user",
+                    //     },
+                    // },
+                    // {
+                    //     $unwind: "$user",
+                    // },
+                    // {
+                    //     $project: {
+                    //         opponentId: "$opponent",
+                    //         messageSentBy: "$result.from",
+                    //         messageSentTo: "$result.to",
+                    //         opponentName: {
+                    //             $concat: [
+                    //                 "$user.firstName",
+                    //                 " ",
+                    //                 "$user.lastName",
+                    //             ],
+                    //         },
+                    //         opponentPic: "$user.profilePic",
+                    //         messageUpdatedAt: "$result.updatedAt",
+                    //         messageCreatedAt: "$result.createdAt",
+                    //         message: "$result.message",
+                    //         belongsTo: "$result.belongsTo",
+                    //         _id: 0
+                    //     },
+                    // },
                     {
                         $lookup: {
                             from: "chats",
@@ -117,7 +180,7 @@ export class ChatsService {
                                     if: {
                                         $eq: [
                                             "$from",
-                                            userId,
+                                            user?._id,
                                         ],
                                     },
                                     then: "$to",
@@ -154,7 +217,10 @@ export class ChatsService {
                             messageCreatedAt: "$result.createdAt",
                             message: "$result.message",
                             belongsTo: "$result.belongsTo",
-                            _id: 0
+                            messageTye: "$result.messageTye",
+                            _id: 0,
+                            eventMessage: "$result.event.message",
+                            fileId: "$result.fileId",
                         },
                     },
                     ...query,
@@ -343,21 +409,34 @@ export class ChatsService {
     }
 
     async createMessage(payload: addChatDto) {
-        const { message, to, userId, belongsTo, fileId, messageType, event } = payload;
+        const { meetId, message, to, userId, belongsTo, fileId, messageType, event } = payload;
 
         if (!(to && userId && belongsTo && messageType)) {
             throw new BadRequestException()
         }
 
+        let query: any = {
+            from: new mongoose.Types.ObjectId(userId),
+            to: new mongoose.Types.ObjectId(to),
+            message,
+            messageType,
+            belongsTo: new mongoose.Types.ObjectId(belongsTo)
+        }
+
+        if (event) {
+            query = { ...query, event }
+        }
+
+        if (fileId) {
+            query = { ...query, fileId: new mongoose.Types.ObjectId(fileId) }
+        }
+
+        if (meetId) {
+            query = { ...query, meetId: new mongoose.Types.ObjectId(meetId) }
+        }
+
         const result = await this.chatsModel.insertMany([
-            {
-                from: new mongoose.Types.ObjectId(userId),
-                to: new mongoose.Types.ObjectId(to),
-                message,
-                messageType,
-                fileId: new mongoose.Types.ObjectId(fileId),
-                belongsTo: new mongoose.Types.ObjectId(belongsTo)
-            }
+            query
         ])
         const lastChatId = result?.[0]?._id
 
@@ -998,7 +1077,7 @@ export class ChatsService {
 
             if (ChatInitiatedDetails?.type == 'INDIVIDUAL') {
                 console.log(ChatInitiatedDetails?.type, "inside")
-                const opponentId = (ChatInitiatedDetails?.from !== user?._id) ? user?._id : ChatInitiatedDetails?.to
+                const opponentId = ((ChatInitiatedDetails?.from?.toString()) !== user?._id?.toString()) ? ChatInitiatedDetails?.from?.toString() : ChatInitiatedDetails?.to?.toString()
                 console.log(opponentId)
                 const opponent = await this.UsersService.getUserById(opponentId?.toString())
                 console.log(opponent)
@@ -1011,7 +1090,7 @@ export class ChatsService {
                         {
                             $match: {
                                 groupId: new mongoose.Types.ObjectId(ChatInitiatedDetails?._id),
-                                memeberId: new mongoose.Types.ObjectId(user?._id),
+                                memeberId: { $ne: user?._id },
                             },
                         },
                         {
@@ -1035,7 +1114,8 @@ export class ChatsService {
                         },
                     ]
                 )
-                return opponent?.[0]?.email ?? []
+                console.log(opponent)
+                return opponent?.[0]?.emial ?? []
             }
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
@@ -1043,7 +1123,7 @@ export class ChatsService {
     }
 
     async createGroupMessage(payload: addChatDto, userId) {
-        const { message, belongsTo, event, fileId, messageType } = payload;
+        const { message, belongsTo, event, fileId, messageType, meetId } = payload;
 
         if (!(belongsTo)) {
             throw new BadRequestException()
@@ -1051,22 +1131,35 @@ export class ChatsService {
 
         console.log("user")
 
+        let query: any = {
+            from: new mongoose.Types.ObjectId(userId),
+            message,
+            messageType,
+            chatType: "GROUP",
+            belongsTo: new mongoose.Types.ObjectId(belongsTo)
+        }
+
+        if (fileId) {
+            query = { ...query, fileId: new mongoose.Types.ObjectId(fileId) }
+        }
+
+        if (meetId) {
+            query = { ...query, meetId: new mongoose.Types.ObjectId(meetId) }
+        }
+
+
 
         if (event?.type == "JOIN" && (!event?.message)) {
             const user = await this.UsersService.getUserById(userId);
             event.message += ` ${user?.firstName}  ${user?.lastName}`
         }
 
+        if (event) {
+            query = { ...query, event }
+        }
+
         const result = await this.chatsModel.insertMany([
-            {
-                from: new mongoose.Types.ObjectId(userId),
-                message,
-                messageType,
-                event,
-                fileId: new mongoose.Types.ObjectId(fileId),
-                chatType: "GROUP",
-                belongsTo: new mongoose.Types.ObjectId(belongsTo)
-            }
+            query
         ])
         const lastChatId = result?.[0]?._id
 
@@ -1424,12 +1517,7 @@ export class ChatsService {
             if (updatingUserID.toString() === user?._id?.toString()) {
                 throw new BadRequestException("You con't change your role")
             }
-            const isUserAsAPermission = await this.GroupMemberModel.findOne({
-                groupId: new mongoose.Types.ObjectId(belongsTo),
-                memeberId: user?._id,
-                role: "ADMIN"
-            })
-
+            const isUserAsAPermission = await this.IsUserAsAPermission(user, belongsTo)
 
             if (!isUserAsAPermission) {
                 throw new BadRequestException("You don't have a access to perform this action")
@@ -1453,5 +1541,80 @@ export class ChatsService {
             throw new InternalServerErrorException(err?.message)
         }
     }
+
+    async IsUserAsAPermission(user: any, belongsTo: string) {
+        const isAdmin = await this.GroupMemberModel.findOne({
+            groupId: new mongoose.Types.ObjectId(belongsTo),
+            memeberId: user?._id,
+            role: "ADMIN"
+        })
+
+        return isAdmin ? true : false;
+    }
+
+    // async DeleteGroup(user: any, belongsTo: string , type : string) {
+    //     try {
+    //         console.log(user)
+    //         console.log(belongsTo)
+    //         if (!(belongsTo)) {
+    //             throw new BadRequestException("Requirements not satisfied")
+    //         }
+
+    //         const isUserAsAPermission = await this.IsUserAsAPermission(user, belongsTo);
+
+    //         if (!isUserAsAPermission) {
+    //             throw new BadRequestException("You don't have a access to perform this action")
+    //         }
+
+    //         const fileIds = await this.chatsModel.aggregate(
+    //             [
+    //                 {
+    //                     $match : {
+    //                         belongsTo: new mongoose.Types.ObjectId(belongsTo),
+    //                     }
+    //                 },
+    //                 {
+    //                     $group : {
+    //                         _id : "$belongsTo",
+    //                         fileIds : {
+    //                             $push : "$fileId"
+    //                         }
+    //                     }
+    //                 },
+    //                 {
+    //                     $project : {
+    //                         _id :0,
+    //                         fileIds : 1
+    //                     }
+    //                 }
+
+    //             ]
+    //         )
+
+    //         if(Array.isArray(fileIds) && fileIds?.length > 0 && fileIds?.[0]?.fileIds){
+    //             Promise.all(
+    //                 fileIds?.[0]?.fileIds?.map(async (fileId :any, i : number)=>{
+    //                     return await this.FileSystemService.deleteFile(user , fileId);
+    //                 })
+    //             )
+    //         }
+
+    //         await this.chatsModel.deleteMany({
+    //             belongsTo: new mongoose.Types.ObjectId(belongsTo),
+    //         })
+    //         await this.GroupMemberModel.deleteMany({
+    //             groupId: new mongoose.Types.ObjectId(belongsTo),
+    //         })
+    //         await this.ChatInitiatedModel.deleteMany({
+    //             _id: new mongoose.Types.ObjectId(belongsTo),
+    //         })
+
+    //         return {
+
+    //         }
+    //     } catch (err) {
+    //         throw new InternalServerErrorException(err?.message)
+    //     }
+    // }
 }
 
