@@ -84,6 +84,15 @@ export class MeetController {
         return await this.MeetService.getScheduledMeetingListOfMine(user, limit, page, search, sortBy, sortOrder, status)
     }
 
+    @UseGuards(AuthGuard())
+    @Get("get-individual-meeting-details")
+    async getIndividualMeetingDetails(
+        @Query("meetingId") meetingId: string,
+        @CurrentUser() user: any
+    ) {
+        return await this.MeetService.getIndividualMeetingDetails(user, meetingId)
+    }
+
 
 
 }

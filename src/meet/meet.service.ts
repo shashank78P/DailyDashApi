@@ -9,7 +9,7 @@ import { allowedMeetingLength, createMeetingDto, invitePeopleForMeetingDto } fro
 import { Users, UsersDocument } from 'src/users/schema/users.schema';
 import { ChatsService } from 'src/chats/chats.service';
 import { MailServiceService } from 'src/mail-service/mail-service.service';
-import MeetingDetailsQuery, { getParticipantsQuery } from './Query';
+import MeetingDetailsQuery, { getParticipantsQuery, individualMeetingDetails } from './Query';
 
 @UsePipes(ValidationPipe)
 @Injectable()
@@ -616,12 +616,12 @@ export class MeetService {
                 query.push(d)
             }
 
-            const sortByQuery = []
-            if (sortBy) {
-                let q = {}
-                q[sortBy] = sortOrder
-                sortByQuery.push({ $sort: q })
-            }
+            // const sortByQuery = []
+            // if (sortBy) {
+            //     let q = {}
+            //     q[sortBy] = sortOrder
+            //     sortByQuery.push({ $sort: q })
+            // }
 
             if (status && status !== "All") {
                 query?.push({ meetingStatus: status })
@@ -639,7 +639,6 @@ export class MeetService {
                         $and: query
                     },
                 },
-                ...sortByQuery,
             ]
 
             console.log(query)
@@ -647,6 +646,11 @@ export class MeetService {
             const count = await this.MeetingParticipants.aggregate(
                 [
                     ...finalQuery,
+                    {
+                        $sort : {
+                            meetingDate : -1
+                        }
+                    },
                     {
                         $count: "count"
                     }
@@ -660,6 +664,11 @@ export class MeetService {
             const result = await this.MeetingParticipants.aggregate(
                 [
                     ...finalQuery,
+                    {
+                        $sort : {
+                            meetingDate : -1
+                        }
+                    },
                     {
                         $skip: Number(skipingNumber) ?? 0
                     },
@@ -685,6 +694,23 @@ export class MeetService {
             return finalResult
 
         } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async getIndividualMeetingDetails(user : any , meetingId : string){
+        try{
+            const result =  await this.MeetModel.aggregate([
+                {
+                    $match : {
+                        _id : new mongoose.Types.ObjectId(meetingId)
+                    }
+                },
+                ...individualMeetingDetails
+            ])
+
+            return result?.[0] ?? {}
+        }catch(err){
             throw new InternalServerErrorException(err?.message)
         }
     }

@@ -19,6 +19,9 @@ export class Users {
 
     @Prop()
     phone: String
+    
+    @Prop()
+    address: String
 
     @Prop()
     profilePic: String

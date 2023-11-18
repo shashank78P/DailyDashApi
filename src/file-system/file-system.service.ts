@@ -1,6 +1,8 @@
 import { Injectable, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { google } from 'googleapis';
 import * as fs from "node:fs"
+const fileSyetem = require('fs').promises;
+
 import { Readable } from 'node:stream';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -34,7 +36,7 @@ export class FileSystemService {
             clientSecret: "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",
             redirectUri: "https://developers.google.com/oauthplayground",
         })
-        this.oauth2Client.setCredentials({ refresh_token: "1//04mWPZ63Y998YCgYIARAAGAQSNwF-L9IrGTbKQx7uZ34jiLT_n1RshdIrmNdok0NKK8JSDi-ujxSFHiaWIn_pV4cz2UuJ18QMtoI" })
+        this.oauth2Client.setCredentials({ refresh_token: "1//04CI10RIIAMebCgYIARAAGAQSNwF-L9Irt7kT2BsD9AcN7qodU9soTbINl3oU_-CAbF4vtNCv_Mw4cBplHpPK8rTYOOJcfW60qS4" })
 
         this.drive = google.drive({
             version: 'v3',
@@ -42,10 +44,9 @@ export class FileSystemService {
         }
         )
     }
-    async uploadFile(user, file) {
+
+    async uploadFileToDrive(filename: string, mimetype: string) {
         try {
-            console.log(file)
-            const { mimetype, filename } = file;
             const response = await this.drive.files.create({
                 requestBody: {
                     name: filename,
@@ -63,11 +64,19 @@ export class FileSystemService {
             if (response?.headers?.status == 200) {
                 throw new BadRequestException("File Not Uploaded Sucessfully")
             }
+            return response;
+        } catch (err) {
+            throw new InternalServerErrorException(err);
+        }
+    }
+    async uploadFile(user, file) {
+        try {
+            console.log(file)
+            const { mimetype, filename } = file;
+            const response = await this.uploadFileToDrive(filename, mimetype);
             const { id, mimeType, name } = response?.["data"];
 
             const filePath = `./uploads/${name}`;
-            // fs.unlinkSync(filePath);
-
             await fs.promises.unlink(filePath);
             if (!id) {
                 throw new BadRequestException("Upload failed")
@@ -252,7 +261,7 @@ export class FileSystemService {
                 mimeType,
                 FileName: name,
                 link: fileLink?.webContentLink,
-                uploadedBy : user?._id,
+                uploadedBy: user?._id,
                 // belongsTo : 
             }])
             return result;
@@ -309,10 +318,46 @@ export class FileSystemService {
     async getFileById(userId: string, fileId: string) {
         try {
             return await this.FileSystemModel.findOne({
-                _id: new mongoose.Types.ObjectId(fileId) ,
-                uploadedBy : new mongoose.Types.ObjectId(userId)
+                _id: new mongoose.Types.ObjectId(fileId),
+                uploadedBy: new mongoose.Types.ObjectId(userId)
             })
         } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async uploadGetOtherWebSiteIcoByLink(user: any, link: string) {
+        try {
+            const response: any = await fetch(`https://www.google.com/s2/favicons?sz=64&domain=${link}`, {
+                method: 'GET',
+                // mode: 'no-cors',
+                // credentials: "omit",
+            });
+            const buffer = await response.arrayBuffer();
+            const fileName = Array(32)
+                .fill(null)
+                .map(() => Math.round(Math.random() * 16).toString(16))
+                .join('');
+            const filePath = `./uploads/${fileName}.png`;
+            fileSyetem?.writeFile(filePath, Buffer.from(buffer));
+
+            const uploadedFile = await this.uploadFileToDrive(`${fileName}.png`, "image/png")
+            await fs.promises.unlink(filePath);
+
+            console.log(uploadedFile?.["data"])
+
+            const { id, mimeType, name } = uploadedFile?.["data"];
+
+            if (!id) {
+                throw new BadRequestException("Upload failed")
+            }
+            await this.generatePublicUrl(user, id)
+            const fileLink = await this.getFileLinkById(user, id);
+            let result = await this.FileSystemModel.insertMany([{ FileId: id, mimeType, FileName: name, link: fileLink?.webContentLink, createdBy: user?._id }])
+            return result;
+
+        } catch (err) {
+            console.log(err)
             throw new InternalServerErrorException(err?.message)
         }
     }

@@ -1,32 +1,4 @@
-const MeetingDetailsQuery = [
-  {
-    $lookup: {
-      from: "meets",
-      localField: "belongsTo",
-      foreignField: "_id",
-      as: "meet",
-    },
-  },
-  {
-    $unwind: "$meet",
-  },
-  {
-    $project: {
-      participantId: 1,
-      belongsTo: 1,
-      isAttended: 1,
-      isInMeeting: 1,
-      _id: "$meet._id",
-      title: "$meet.title",
-      description: "$meet.description",
-      meetingDate: "$meet.meetingDate",
-      meetingLength: "$meet.meetingLength",
-      whoCanJoin: "$meet.whoCanJoin",
-      createdAt: "$meet.createdAt",
-      updatedAt: "$meet.updatedAt",
-      createdBy: "$meet.createdBy",
-    },
-  },
+export const individualMeetingDetails = [
   {
     $addFields: {
       meetingLength: {
@@ -156,13 +128,6 @@ const MeetingDetailsQuery = [
       },
     },
   },
-  // {
-  //   $match: {
-  //     meetingStatus: {
-  //       $ne: "Completed"
-  //     }
-  //   },
-  // },
   {
     $lookup: {
       from: "users",
@@ -213,6 +178,7 @@ const MeetingDetailsQuery = [
       createdAt: 1,
       createdBy: 1,
       createrName: 1,
+      // createrPic : "$user.profilePic",
       participantsCount: 1,
       meetingLength: 1,
       meetingLengthPararmeter: 1,
@@ -222,6 +188,40 @@ const MeetingDetailsQuery = [
     },
   },
 ]
+
+const MeetingDetailsQuery = [
+  {
+    $lookup: {
+      from: "meets",
+      localField: "belongsTo",
+      foreignField: "_id",
+      as: "meet",
+    },
+  },
+  {
+    $unwind: "$meet",
+  },
+  {
+    $project: {
+      participantId: 1,
+      belongsTo: 1,
+      isAttended: 1,
+      isInMeeting: 1,
+      _id: "$meet._id",
+      title: "$meet.title",
+      description: "$meet.description",
+      meetingDate: "$meet.meetingDate",
+      meetingLength: "$meet.meetingLength",
+      whoCanJoin: "$meet.whoCanJoin",
+      createdAt: "$meet.createdAt",
+      updatedAt: "$meet.updatedAt",
+      createdBy: "$meet.createdBy",
+    },
+  }, 
+  ...individualMeetingDetails
+]
+
+
 
 export default MeetingDetailsQuery
 

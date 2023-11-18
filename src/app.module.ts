@@ -18,6 +18,7 @@ import { MeetService } from './meet/meet.service';
 import { MeetController } from './meet/meet.controller';
 import { MeetsModule } from './meet/meet.module';
 import { BookMarksModule } from './book-marks/book-marks.module';
+import { QuickAccessModule } from './quick-access/quick-access.module';
 
 // password
 // KTnUhKukTZ9n1fhf
@@ -44,6 +45,7 @@ import { BookMarksModule } from './book-marks/book-marks.module';
       }
     ),
     BookMarksModule,
+    QuickAccessModule,
   ],
   controllers: [AppController, TaskManagementController ],
   providers: [AppService, TaskManagementService, PollsGateway, corsMiddleware ,JwtService],

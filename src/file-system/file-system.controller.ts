@@ -86,6 +86,15 @@ export class FileSystemController {
     ) {
         return await this.FileSystemService.uploadAudioBase64Data(user , body);
     }
+    
+    @UseGuards(AuthGuard())
+    @Post("/get-website-icon-from-link")
+    async getwebsiteiconfromlink(
+        @Body("link") link: string,
+        @CurrentUser() user: any
+    ) {
+        return await this.FileSystemService.uploadGetOtherWebSiteIcoByLink(user , link);
+    }
 
     // @Post("/resumableUploads")
     // resumableUploads(

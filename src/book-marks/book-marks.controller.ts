@@ -64,4 +64,21 @@ export class BookMarksController {
         return await this.BookMarkServices.deleteBookMark(user ,_id)
     }
     
+    @UseGuards(AuthGuard())
+    @Post("/toggle-pinned-bookmark")
+    async togglePinnedBookmark(
+        @CurrentUser() user: any,
+        @Query("_id") _id: string,
+    ) {
+        return await this.BookMarkServices.togglePinnedBookmark(user ,_id)
+    }
+    
+    @UseGuards(AuthGuard())
+    @Get("/get-pinned-details")
+    async getPinnedDetails(
+        @CurrentUser() user: any,
+    ) {
+        return await this.BookMarkServices.getPinnedDetails(user)
+    }
+    
 }

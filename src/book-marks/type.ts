@@ -11,6 +11,14 @@ export class createBookMarkDto  {
     @IsString()
     title : string
     
+    @IsNotEmpty()
+    @IsString()
+    link : string
+    
+    @IsNotEmpty()
+    @IsBoolean()
+    pinned : boolean
+    
     @IsOptional()
     @IsString()
     priority : string
@@ -32,6 +40,14 @@ export class updateBookMarkDto  {
     @IsNotEmpty()
     @IsString()
     title : string
+  
+    @IsNotEmpty()
+    @IsString()
+    link : string
+
+    @IsNotEmpty()
+    @IsBoolean()
+    pinned : boolean
     
     @IsNotEmpty()
     @IsBoolean()
@@ -76,6 +92,7 @@ export const bookMarkBasicQuery = [
             link: 1,
             fileId: 1,
             createdAt: 1,
+            pinned : 1,
             bookMarkImageLink: "$file.link"
         },
     },

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { UpdateUserDto, UserDataDto, _idDto } from "./types.dto"
+import { UpdateUserDto, UserDataDto, _idDto, changeProfilePicDto } from "./types.dto"
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from 'src/log-in-devices/currentUser.decorator';
 
@@ -49,6 +49,14 @@ export class UsersController {
     ) {
         return this.usersService.getUserById(_id);
     }
+    
+    @UseGuards(AuthGuard())
+    @Get("/getMineDetails")
+    async getMineDetails(
+        @CurrentUser() user: any
+    ) {
+        return this.usersService.getUserById(user?._id);
+    }
 
     @Put("/updateUserDetails")
     async updateUser(
@@ -57,6 +65,26 @@ export class UsersController {
     ) {
         console.log(userData);
         return this.usersService.updateUser(userData, _id["_id"]);
+    }
+
+    @UseGuards(AuthGuard())
+    @Put("/updateMineDetails")
+    async updateMineUser(
+        @Body() userData: UpdateUserDto,
+        @CurrentUser() user: any
+    ) {
+        console.log(userData);
+        return this.usersService.updateUser(userData, user?._id);
+    }
+
+
+    @UseGuards(AuthGuard())
+    @Put("/change-profile-pic")
+    async changeProfilePic(
+        @Body() profilePic: changeProfilePicDto,
+        @CurrentUser() user: any
+    ) {
+        return this.usersService.changeProfilePic(profilePic, user);
     }
 
     // @Post("/signIn")

@@ -9,6 +9,9 @@ export class BookMarks {
     @Prop({ type: String, required: true })
     title: string
     
+    @Prop({ type: Boolean, required: true , default : false })
+    pinned: boolean
+    
     @Prop({ type: String, required: true })
     priority: priorityDto
 

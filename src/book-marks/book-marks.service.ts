@@ -31,9 +31,11 @@ export class BookMarksService {
         }
     }
 
+
+
     async updateBookMark(user, data: updateBookMarkDto, bookMarkId: string) {
         try {
-            const { description, fileId, hashTags, priority, title, isBookMarkImageChanged } = data;
+            const { description, fileId, hashTags, priority, title, isBookMarkImageChanged, pinned , link } = data;
             const isBookMarkIsExist = await this.BookMarkModel.findOne({
                 _id: new mongoose.Types.ObjectId(bookMarkId),
                 belongsTo: user?._id
@@ -47,7 +49,9 @@ export class BookMarksService {
                 description,
                 hashTags,
                 priority,
-                title
+                title,
+                pinned,
+                link
             }
 
             if (isBookMarkImageChanged && fileId) {
@@ -73,6 +77,7 @@ export class BookMarksService {
 
             const query: any = [{ _id: { $ne: null }, belongsTo: user?._id }]
             console.log(from, to)
+
             if (!["undefined", "null"].includes(from) && new Date(from)) {
                 query.push({ createdAt: { $gte: new Date(from) } })
             }
@@ -81,7 +86,7 @@ export class BookMarksService {
             }
 
             if (search) {
-                const regx = new RegExp(search , "i");
+                const regx = new RegExp(search, "i");
                 const d = {
                     $or: [
                         { title: { $regex: regx } },
@@ -167,6 +172,7 @@ export class BookMarksService {
             return finalResult
 
         } catch (err: any) {
+            console.log(err)
             throw new InternalServerErrorException(err?.message)
         }
     }
@@ -201,11 +207,50 @@ export class BookMarksService {
 
     async deleteBookMark(user, _id) {
         try {
-            const deleted = await this.BookMarkModel.findOneAndDelete({ _id: new mongoose.Types.ObjectId(_id) , belongsTo : user?._id })
-            if(!deleted){
+            const deleted = await this.BookMarkModel.findOneAndDelete({ _id: new mongoose.Types.ObjectId(_id), belongsTo: user?._id })
+            if (!deleted) {
                 throw new NotFoundException("Bookmark not found")
             }
             return deleted
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async togglePinnedBookmark(user: any, id: string) {
+        try {
+            if (!id) {
+                throw new BadRequestException("Requirements not matched")
+            }
+            const bookmark = await this.BookMarkModel.findOne({
+                _id: new mongoose.Types.ObjectId(id),
+                belongsTo: new mongoose.Types.ObjectId(user?._id)
+            })
+
+            if (!bookmark) {
+                throw new NotFoundException("Bokmark not found")
+            }
+
+            await this.BookMarkModel.updateOne(
+                {
+                    _id: new mongoose.Types.ObjectId(id),
+                    belongsTo: user?._id
+                },
+                {
+                    $set: {
+                        pinned: !bookmark?.pinned
+                    }
+                })
+            return bookmark?.pinned ? "Un-Pinned sucessfully" : "Pinned sucessfully";
+
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async getPinnedDetails(user) {
+        try {
+            return await this.BookMarkModel.find({ belongsTo: user?._id, pinned: true });
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }

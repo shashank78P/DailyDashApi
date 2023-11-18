@@ -61,6 +61,12 @@ export class UserDataDto {
     confirmPassword: string
 }
 
+export class changeProfilePicDto {
+    @IsString()
+    @IsNotEmpty()
+    url: string
+}
+
 export class UpdateUserDto {
     @IsString()
     @IsOptional()
@@ -73,8 +79,12 @@ export class UpdateUserDto {
     @IsOptional()
     @IsString()
     lastName: string
+    
+    @IsOptional()
+    @IsString()
+    address: string
 
-    @IsDate()
+    @IsString()
     @IsOptional()
     dob: string
 
