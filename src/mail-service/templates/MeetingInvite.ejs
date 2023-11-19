@@ -5,23 +5,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DailyDash-(Meeting Invitation!!!)</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300&family=PT+Sans&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Philosopher:wght@300&family=PT+Sans&display=swap');
+
+        * {
+            padding: 0;
+            border: 0;
+            margin: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            color: #64748b;
+            text-decoration: none;
+        }
+
+        body {
+            padding: 10px;
+        }
+
+        .title {
+            font-family: 'Philosopher', sans-serif;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            color: #7e22ce;
+        }
+
+        h3 {
+            color: #334155;
+        }
+
+        p {
+            font-size: 14px;
+            margin: 10px 0;
+        }
+
+        a {
+            background-color: #ef4444;
+            color: white;
+            padding: 10px 10px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+        .or {
+            border: 1px solid #7e22ce;
+            position: relative;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            margin: 30px 0;
+        }
+
+        .or span {
+            position: absolute;
+            top: -20px;
+            background-color: #7e22ce;
+            padding: 10px;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .red {
+            color: #ef4444;
+        }
+
+        .link {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        table {
+            /* border: 1px solid red; */
+            width: 100%;
+        }
+
+        tr,
+        th,
+        td {
+            padding: 5px;
+            text-align: start;
+        }
+
+        tr:nth-child(even) {
+            background-color: #faf5ff;
+        }
+    </style>
 </head>
 
 <body>
     <h1>Daily Dash</h1>
-    <h3>Hello, <strong>
-            <%=email%>
-        </strong>
-        <br />
+    <h3>Hello,<%=email%>
     </h3>
     <p>
         <strong>
             <%=createdBy%>
         </strong>
-        has been created a scheduled a meeting<br />
+        has been scheduled a meeting<br />
     </p>
-    <table style="text-align: start; padding: 2px;">
-        <tr style="">
+    <table>
+        <tr>
             <th>Title :</th>
             <td>
                 <%=title%>
@@ -46,12 +132,21 @@
             </td>
         </tr>
     </table>
-    <br />
 
-    Join meeting using below link<br />
-    <%=link%><br />
-        <br />
-        <a href="<%=link%>" style="padding: 5px 10px; color : white; font-weight: 700; background-color: blue; margin: 10px;" >Join</a>
+    <a href="<%=link%>"
+        style="padding: 10px 10px; color : white; font-weight: 700; background-color: #7e22ce; margin: 10px;">Join</a>
+
+    <p class="or">
+        <span>or</span>
+    </p>
+
+    <p>
+        Join meeting using below link
+    </p>
+    <p class="link">
+        <%=link%><br />
+    </p>
+    <br />
 
 </body>
 

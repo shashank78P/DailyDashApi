@@ -121,7 +121,7 @@ export class LogInDetailsService {
 
             return result;
         } catch (err) {
-            throw new InternalServerErrorException(err?.message);
+            throw new InternalServerErrorException(err?.message)
         }
     }
 
@@ -129,7 +129,7 @@ export class LogInDetailsService {
         let text = "";
         let htmlData = '<h1>Hello <strong>${isUserExist?.firstName + " " + isUserExist?.lastName}</strong>,\n\nWe noticed a login to your account from a new device.  If this was not you, please take immediate action to secure your account.</h1>';
         let subject = `Security Alert!!!`
-        this.mailService.sendMail(email, subject, text, "Alert", { link: `${"http://localhost:3000/block?email=" + email + "&logInId=" + logInId}`, firstName: isUserExist?.firstName, lastName: isUserExist?.lastName });
+        this.mailService.sendMail(email, subject, text, "Alert", { link: `${process.env.FRONT_END}/block?email=${email}&logInId=${logInId}`, firstName: isUserExist?.firstName, lastName: isUserExist?.lastName });
 
     }
 
@@ -352,7 +352,7 @@ export class LogInDetailsService {
                     },
                 },
                 {
-                    $sort: { dateDiff: 1 }
+                    $sort: { createdAt: -1 }
                 }
             ])
 
