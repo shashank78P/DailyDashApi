@@ -66,6 +66,8 @@ export class JwtStratery extends PassportStrategy(Strategy) {
         ...user,
       };
       userData["_doc"]["userId"] = new mongoose.Types.ObjectId(userId)
+      userData["_doc"]["loginId"] = loginId
+      console.log(userData)
       req["user"] = userData;
       return userData;
     } catch (err) {

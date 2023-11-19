@@ -209,6 +209,10 @@ export class LogInDetailsService {
             if (!isUserExist) {
                 throw new NotFoundException()
             }
+
+            if(isUserExist?.email == process.env.TESTEMAIL){
+                throw new BadRequestException("This is mail is for testing, u con't re-set password")
+            }
             let passwordResetId: String = await uuid();
             let res = await this.UsersModel.updateOne({ _id: new mongoose.Types.ObjectId(isUserExist._id) }, { $set: { passwordResetId: passwordResetId, passwordResetUpdatedAt: new Date() } })
 
@@ -255,6 +259,10 @@ export class LogInDetailsService {
                 throw new NotFoundException()
             }
 
+            if(isUserExist?.email == process.env.TESTEMAIL){
+                throw new BadRequestException("This is mail is for testing, u con't re-set password")
+            }
+
             password = await bcrypt.hash(password.toString(), 12)
             const user = await this.UsersModel.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(userId) }, { password, passwordResetId: "", isEmailVerified: true, updatedAt: new Date() });
             if (!user) {
@@ -267,9 +275,9 @@ export class LogInDetailsService {
         }
     }
 
-    async blockLogInDevice(data: BlockLogInDevicesDto) {
+    async blockLogInDevice(user: any, data: BlockLogInDevicesDto) {
         try {
-            const isLogInIdExist = await this.LogInDetailsModel.findOne({ logInId: data?.logInId });
+            const isLogInIdExist = await this.LogInDetailsModel.findOne({ userId: user?._id, logInId: data?.logInId });
             if (!isLogInIdExist) {
                 throw new NotFoundException("LogInId not Found")
             }
@@ -284,12 +292,32 @@ export class LogInDetailsService {
                 throw new InternalServerErrorException("Invalid Credentials");
             }
 
-            const isDeleted = await this.LogInDetailsModel.deleteOne({ logInId: data?.logInId })
+            const isDeleted = await this.LogInDetailsModel.deleteOne({ userId: user?._id, logInId: data?.logInId })
 
             if (isDeleted) {
                 return "Blocked Successfully"
             }
             throw new NotFoundException();
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async getLogInDeviceDetails(user, email, logInId) {
+        try {
+            if (!(email && logInId)) {
+                throw new BadRequestException("Requirements not satisfied")
+            }
+            const deviceDetails = await this.LogInDetailsModel.findOne({
+                userId: user?._id,
+                logInId: logInId
+            })
+
+            if (!deviceDetails) {
+                throw new NotFoundException()
+            }
+
+            return deviceDetails
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }
@@ -324,13 +352,37 @@ export class LogInDetailsService {
                     },
                 },
                 {
-                    $sort : { dateDiff : 1 } 
+                    $sort: { dateDiff: 1 }
                 }
             ])
 
             return result;
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async logOut(user: any , res : any) {
+        try {
+            const { loginId, _id } = user;
+
+            if (!(loginId && _id)) {
+                throw new BadRequestException("Requirements are not matched")
+            }
+            await this.LogInDetailsModel.deleteOne({
+                userId: user?._id,
+                logInId: loginId
+            })
+            return res.cookie("authorization", `Bearer `, {
+                httpOnly: true,
+                secure: process.env.DEVELOPMENT,
+                maxAge: Date.now() + 60,   // 31 DAYS
+                sameSite: 'None',
+                // domain: process.env.FRONT_END_DOMAIN,
+            })
+                .json({})
+        } catch (err) {
+            throw new InternalServerErrorException(err)
         }
     }
 }

@@ -22,9 +22,9 @@ export class LogInDevicesController {
         @Res() res,
         @Req() req,
     ) {
-        return this.LogInDevicesService.logIn(userData,res, req);
+        return this.LogInDevicesService.logIn(userData, res, req);
     }
-    
+
     @Post("/signin")
     async SignIn(
         @Body() userData: signInDto,
@@ -32,11 +32,11 @@ export class LogInDevicesController {
         @Req() req,
     ) {
         res.send(
-            await this.LogInDevicesService.Signin(userData,res, req)
-            );
+            await this.LogInDevicesService.Signin(userData, res, req)
+        );
     }
-    
-    
+
+
 
     // @UseGuards(AuthGuard())
     @Get("/")
@@ -64,7 +64,6 @@ export class LogInDevicesController {
         @Body() body: googleCredentialDto,
         @Res() res: any,
         @Req() req: any,
-
     ) {
         return await this.LogInDevicesService.googleLogin(body, res, req);
     }
@@ -82,28 +81,49 @@ export class LogInDevicesController {
     ) {
         return await this.LogInDevicesService.reSetPassword(data);
     }
-    
+
+    @UseGuards(AuthGuard())
     @Put("block-log-in-device")
     async blockLogInDevices(
-        @Body() data: BlockLogInDevicesDto
-        ) {
-            return await this.LogInDevicesService.blockLogInDevice(data);
-        }
-        
+        @Body() data: BlockLogInDevicesDto,
+        @CurrentUser() user: any
+    ) {
+        return await this.LogInDevicesService.blockLogInDevice(user , data);
+    }
+
+    @UseGuards(AuthGuard())
+    @Get("get-log-in-device-details")
+    async getLogInDeviceDetails(
+        @Query("email") email : string,
+        @Query("logInId") logInId : string,
+        @CurrentUser() user: any
+    ) {
+        return await this.LogInDevicesService.getLogInDeviceDetails(user , email , logInId);
+    }
+
     @Post("/forget-password")
     async forgetPassword(
         @Body() data: forgetpasswordDto
-    ){
-        const {email} = data;
+    ) {
+        const { email } = data;
         return await this.LogInDevicesService.sendMailToResetPassword(email)
     }
-    
+
     @UseGuards(AuthGuard())
     @Get("/get-all-active-logged-in-devices")
     async getAllActiveLoggedInDevices(
         @CurrentUser() user: any
-    ){
+    ) {
         return await this.LogInDevicesService.getAllActiveLoggedInDevices(user)
+    }
+    
+    @UseGuards(AuthGuard())
+    @Delete("/log-out")
+    async logOut(
+        @CurrentUser() user: any,
+        @Res() res : any
+    ) {
+        return await this.LogInDevicesService.logOut(user , res)
     }
 
 

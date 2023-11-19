@@ -32,7 +32,7 @@ export class ChatInitiated{
     @Prop({type : String })
     description : String
     
-    @Prop({type : String })
+    @Prop({type : String , default : "https://drive.google.com/uc?export=download&id=1MUlNxRj8g_BWLxt1YKl8cep2yp5Zdo_u"})
     groupProfilePic : String
     
     @Prop({type : String })

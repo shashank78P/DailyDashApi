@@ -19,11 +19,11 @@ export class Users {
 
     @Prop()
     phone: String
-    
+
     @Prop()
     address: String
 
-    @Prop()
+    @Prop({ required: true, default: "https://drive.google.com/uc?export=download&id=1Fx_35bkPu4J1nVq7W5keiJCHd9z_o4AZ" })
     profilePic: String
 
     @Prop({ required: true })
@@ -37,22 +37,22 @@ export class Users {
 
     @Prop({ required: true, default: false })
     isEmailVerified: Boolean
-    
+
     @Prop({ required: true, default: false })
     isOnline: Boolean
 
     @Prop({ required: true, default: false })
     isMediaSignUp: Boolean
-    
+
     @Prop({ required: false })
-    passwordResetId : string
-    
-    @Prop({ required: false ,  default : new Date()})
-    passwordResetUpdatedAt :Date
+    passwordResetId: string
+
+    @Prop({ required: false, default: new Date() })
+    passwordResetUpdatedAt: Date
 
     @Prop({ required: true })
     os: string
-    
+
     @Prop({ required: true })
     browser: string
 

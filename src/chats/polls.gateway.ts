@@ -63,7 +63,7 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
             const jwtDecodedData = await this.jwtService.verifyAsync(token, { secret: 'DailyDash51' });
             return jwtDecodedData
         } catch (err) {
-            throw new InternalServerErrorException(err?.message)
+            // throw new InternalServerErrorException(err?.message)
         }
     }
 
