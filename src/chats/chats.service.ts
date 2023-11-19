@@ -212,6 +212,7 @@ export class ChatsService {
                                     "$user.lastName",
                                 ],
                             },
+                            isOnline: "$user.isOnline",
                             opponentPic: "$user.profilePic",
                             messageUpdatedAt: "$result.updatedAt",
                             messageCreatedAt: "$result.createdAt",

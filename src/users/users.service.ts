@@ -63,7 +63,7 @@ export class UsersService {
             if (!_id) {
                 throw new BadRequestException("_id required");
             }
-            let result = await this.UsersModel.findOne({ _id: new mongoose.Types.ObjectId(_id) }, { password: -1, passwordResetId: -1, firstName: 1, lastName: 1, email: 1 ,address : 1 , dob : 1})
+            let result = await this.UsersModel.findOne({ _id: new mongoose.Types.ObjectId(_id) }, { password: -1, passwordResetId: -1, firstName: 1, lastName: 1, email: 1, address: 1, dob: 1 })
             // if (!result) {
             //     throw new NotFoundException("No user found");
             // }
@@ -186,6 +186,14 @@ export class UsersService {
                 }
             )
             return "Updated successfully";
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async changeUserIsOnline(userId: string, isOnLine: boolean) {
+        try {
+            await this.UsersModel.updateOne({ _id: new mongoose.Types.ObjectId(userId) }, { $set: { isOnline: isOnLine } })
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }

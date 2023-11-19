@@ -37,6 +37,9 @@ export class Users {
 
     @Prop({ required: true, default: false })
     isEmailVerified: Boolean
+    
+    @Prop({ required: true, default: false })
+    isOnline: Boolean
 
     @Prop({ required: true, default: false })
     isMediaSignUp: Boolean

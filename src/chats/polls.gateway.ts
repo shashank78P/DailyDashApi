@@ -71,12 +71,14 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
     //     console.log("socket?.request?.headers?.cookie");
     //     console.log(socket?.request?.headers?.cookie);
     // });
-    handleConnection(client: Socket) {
+    async handleConnection(client: Socket) {
         const sockets = this.io.sockets
 
+        const user = await this.verifyToken(client)
         this.logger.log(`ws client with id: ${client.id} connected`);
         this.logger.debug(`Number of connected sockets: ${sockets.size} connected`);
         this.logger.debug(client?.handshake?.auth?.userId);
+        await this.usersService.changeUserIsOnline(user?.userId?.toString(), true)
     }
 
     async handleDisconnect(client: Socket) {
@@ -88,6 +90,9 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
             if (!user?.userId) {
                 return;
             }
+
+            await this.usersService.changeUserIsOnline(user?.userId?.toString(), false)
+
             const UserInMeetingList = await this.MeetService.getAListOfAllUserInMetting(user?.userId)
 
             Promise.all(UserInMeetingList?.map(async (meeting, i) => {
@@ -246,6 +251,27 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
             this.server.emit(`${payload?.to}ChatNotification`, { type: "CHAT" });
         } catch (err) {
             console.log(err)
+        }
+    }
+    
+    @SubscribeMessage("STARTED-TYPING")
+    async handelTyping(client : Socket , payload : { belongsTo : string , type : string}){
+        try{
+            const { userId } = await this.verifyToken(client)
+            console.log(payload)
+            this.server.emit(`${payload?.belongsTo?.toString()}typing`, { type: payload?.type , status : "STARTED"})
+        }catch(err){
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+    
+    @SubscribeMessage("STOPED-TYPING")
+    async handelStopTyping(client : Socket , payload : { belongsTo : string , type : string}){
+        try{
+            const { userId } = await this.verifyToken(client)
+            this.server.emit(`${payload?.belongsTo?.toString()}typing`, { type: payload?.type , status : "STOPPED"})
+        }catch(err){
+            throw new InternalServerErrorException(err?.message)
         }
     }
 
