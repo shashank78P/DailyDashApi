@@ -97,6 +97,14 @@ export class LogInDevicesController {
         const {email} = data;
         return await this.LogInDevicesService.sendMailToResetPassword(email)
     }
+    
+    @UseGuards(AuthGuard())
+    @Get("/get-all-active-logged-in-devices")
+    async getAllActiveLoggedInDevices(
+        @CurrentUser() user: any
+    ){
+        return await this.LogInDevicesService.getAllActiveLoggedInDevices(user)
+    }
 
 
 }

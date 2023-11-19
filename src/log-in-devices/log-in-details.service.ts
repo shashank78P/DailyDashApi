@@ -64,9 +64,9 @@ export class LogInDetailsService {
             }
 
             const result = await this.createNewLogInDetails(isUserExist?._id.toString(), logInId, req, os, browser)
-            // this.sendLogInAlert(isUserExist, email, logInId);
+            this.sendLogInAlert(isUserExist, email, logInId);
             if (!isUserExist?.password) {
-                // this.sendMailToResetPassword(email);
+                this.sendMailToResetPassword(email);
             }
             return this.setCookieForWhileLogIn(isUserExist, logInId, res);
 
@@ -97,7 +97,6 @@ export class LogInDetailsService {
 
                 return await this.sendMailToResetPassword(email)
             } else {
-                console.log("isUserExist===")
                 throw new BadRequestException("Account already exist, Please LogIn!!");
             }
         } catch (err) {
@@ -145,18 +144,14 @@ export class LogInDetailsService {
         // res.user = cookieData
         console.log("setting cookie")
 
-        // res.setHeader('Access-Control-Allow-Origin', 'https://daily-dash-git-final-shashank78p.vercel.app');
-
-
         return res.cookie("authorization", `Bearer ${token}`, {
             httpOnly: true,
-            secure: process.env.DEVELOPMENT, // Set to true to ensure the cookie is sent over HTTPS
-            maxAge: Date.now() + 60 * 60,   // 1 hour
+            secure: process.env.DEVELOPMENT,
+            maxAge: Date.now() + 60 * 60 * 24 * 31,   // 31 DAYS
             sameSite: 'None',
             // domain: process.env.FRONT_END_DOMAIN,
         })
-        .json(cookieData)
-        // 'daily-dash-git-final-shashank78p.vercel.app',
+            .json(cookieData)
     }
 
     // signing in with email and password
@@ -188,7 +183,7 @@ export class LogInDetailsService {
             console.log(logInId)
 
             let result = await this.createNewLogInDetails(isUserExist?._id, logInId, req, os, browser)
-            // this.sendLogInAlert(isUserExist, email);
+            this.sendLogInAlert(isUserExist, email, logInId);
 
             return await this.setCookieForWhileLogIn(isUserExist, logInId, res);
         } catch (err) {
@@ -295,6 +290,45 @@ export class LogInDetailsService {
                 return "Blocked Successfully"
             }
             throw new NotFoundException();
+        } catch (err) {
+            throw new InternalServerErrorException(err?.message)
+        }
+    }
+
+    async getAllActiveLoggedInDevices(user: any) {
+        try {
+            console.log("user?._id")
+            console.log(user?._id)
+            const result = await this.LogInDetailsModel.aggregate([
+                {
+                    $match: {
+                        userId: user?._id
+                    },
+                },
+                {
+                    $addFields: {
+                        dateDiff: {
+                            $dateDiff: {
+                                startDate: "$createdAt",
+                                endDate: new Date(),
+                                unit: "day",
+                            },
+                        },
+                    },
+                },
+                {
+                    $match: {
+                        dateDiff: {
+                            $lte: 31,
+                        },
+                    },
+                },
+                {
+                    $sort : { dateDiff : 1 } 
+                }
+            ])
+
+            return result;
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }

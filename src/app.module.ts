@@ -3,9 +3,6 @@ import { MongooseModule } from "@nestjs/mongoose";
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { TaskManagementModule } from './task-management/task-management.module';
-import { TaskManagementController } from './task-management/task-management.controller';
-import { TaskManagementService } from './task-management/task-management.service';
 import { UsersModule } from './users/users.module';
 import { LogInDetailsModule } from './log-in-devices/log-in-details.module';
 import { MailServiceModule } from './mail-service/mail-service.module';
@@ -29,7 +26,6 @@ import { QuickAccessModule } from './quick-access/quick-access.module';
       // "mongodb://localhost:27017/"
       "mongodb+srv://shashank:KTnUhKukTZ9n1fhf@atlascluster.hj3ipxu.mongodb.net/DailyDash?retryWrites=true&w=majority"
     ),
-    TaskManagementModule,
     UsersModule,
     LogInDetailsModule,
     MailServiceModule,
@@ -47,8 +43,8 @@ import { QuickAccessModule } from './quick-access/quick-access.module';
     BookMarksModule,
     QuickAccessModule,
   ],
-  controllers: [AppController, TaskManagementController ],
-  providers: [AppService, TaskManagementService, PollsGateway, corsMiddleware ,JwtService],
+  controllers: [AppController ],
+  providers: [AppService, PollsGateway, corsMiddleware ,JwtService],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
