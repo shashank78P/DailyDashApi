@@ -39,7 +39,7 @@ export class QuickAccessController {
     }
 
     @UseGuards(AuthGuard())
-    @Delete("/add")
+    @Delete("/delete")
     async deleteQuickAccess(
         @Query("id") id: string,
         @CurrentUser() user: any
