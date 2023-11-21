@@ -72,13 +72,17 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
     //     console.log(socket?.request?.headers?.cookie);
     // });
     async handleConnection(client: Socket) {
-        const sockets = this.io.sockets
+        try {
+            const sockets = this.io.sockets
+            const user = await this.verifyToken(client)
+            this.logger.log(`ws client with id: ${client.id} connected`);
+            this.logger.debug(`Number of connected sockets: ${sockets.size} connected`);
+            this.logger.debug(client?.handshake?.auth?.userId);
+            await this.usersService.changeUserIsOnline(user?.userId?.toString(), true)
+        }
+        catch (err) {
 
-        const user = await this.verifyToken(client)
-        this.logger.log(`ws client with id: ${client.id} connected`);
-        this.logger.debug(`Number of connected sockets: ${sockets.size} connected`);
-        this.logger.debug(client?.handshake?.auth?.userId);
-        await this.usersService.changeUserIsOnline(user?.userId?.toString(), true)
+        }
     }
 
     async handleDisconnect(client: Socket) {
@@ -219,9 +223,13 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
 
     @SubscribeMessage('sending-stream')
     async handleSendingMediaStreamEvent(client: Socket, payload: any) {
-        const user = await this.verifyToken(client)
-        const { type, meetingId, sendingTo, opponentId } = payload
-        this.server.emit(`${sendingTo}-notify`, { meetingId, sendingTo, opponentId, type })
+        try{
+            const user = await this.verifyToken(client)
+            const { type, meetingId, sendingTo, opponentId } = payload
+            this.server.emit(`${sendingTo}-notify`, { meetingId, sendingTo, opponentId, type })
+        }catch(err){
+
+        }
     }
 
     @SubscribeMessage('stream')
@@ -234,9 +242,13 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
 
     @SubscribeMessage('joined-meeting')
     handleJoinedMeetingEvent(client: Socket, payload: any) {
-        console.log("joined meeting")
-        console.log(payload)
-        this.server.emit(`${payload?.meetingId}-notify`, { type: "joined", userId: payload?.userId });
+        try{
+            console.log("joined meeting")
+            console.log(payload)
+            this.server.emit(`${payload?.meetingId}-notify`, { type: "joined", userId: payload?.userId });
+        }catch(err){
+
+        }
     }
 
     // inividuals chats handler
@@ -255,25 +267,25 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
             console.log(err)
         }
     }
-    
+
     @SubscribeMessage("STARTED-TYPING")
-    async handelTyping(client : Socket , payload : { belongsTo : string , type : string}){
-        try{
+    async handelTyping(client: Socket, payload: { belongsTo: string, type: string }) {
+        try {
             const { userId } = await this.verifyToken(client)
             console.log(payload)
-            this.server.emit(`${payload?.belongsTo?.toString()}typing`, { type: payload?.type , status : "STARTED"})
-        }catch(err){
-            throw new InternalServerErrorException(err?.message)
+            this.server.emit(`${payload?.belongsTo?.toString()}typing`, { type: payload?.type, status: "STARTED" })
+        } catch (err) {
+            
         }
     }
-    
+
     @SubscribeMessage("STOPED-TYPING")
-    async handelStopTyping(client : Socket , payload : { belongsTo : string , type : string}){
-        try{
+    async handelStopTyping(client: Socket, payload: { belongsTo: string, type: string }) {
+        try {
             const { userId } = await this.verifyToken(client)
-            this.server.emit(`${payload?.belongsTo?.toString()}typing`, { type: payload?.type , status : "STOPPED"})
-        }catch(err){
-            throw new InternalServerErrorException(err?.message)
+            this.server.emit(`${payload?.belongsTo?.toString()}typing`, { type: payload?.type, status: "STOPPED" })
+        } catch (err) {
+            
         }
     }
 
