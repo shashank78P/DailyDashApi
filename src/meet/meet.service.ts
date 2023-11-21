@@ -125,8 +125,8 @@ export class MeetService {
                     if (!isHeExitsBefore) {
                         await this.MeetingParticipants.insertMany([
                             {
-                                belongsTo : new mongoose.Types.ObjectId(meetingId),
-                                participantId : participantsDetails?._id
+                                belongsTo: new mongoose.Types.ObjectId(meetingId),
+                                participantId: participantsDetails?._id
                             }
                         ])
                         await this.sendMeetingInvitationMail(email, meetingId, participantsDetails, isHeCreated)
@@ -508,7 +508,7 @@ export class MeetService {
         let text = "";
         let subject = `Meeting invitation`
         this.MailService.sendMail(email, subject, text, "MeetingInvite", {
-            link: `${process.env.FRONT_END}/meet/room?id=${meetingId}}`,
+            link: `${process.env.FRONT_END}/meet/room?id=${meetingId}`,
             createdBy: userDetails?.firstName + " " + userDetails?.lastName,
             title: meet?.title,
             description: meet?.description ?? " ",
@@ -594,7 +594,7 @@ export class MeetService {
         try {
             const query: any = [{ meetingId: { $ne: null } }]
             if (search) {
-                const regx = new RegExp(search , "i");
+                const regx = new RegExp(search, "i");
                 const d = {
                     $or: [
                         { title: { $regex: regx } },
@@ -647,8 +647,8 @@ export class MeetService {
                 [
                     ...finalQuery,
                     {
-                        $sort : {
-                            meetingDate : -1
+                        $sort: {
+                            meetingDate: -1
                         }
                     },
                     {
@@ -665,8 +665,8 @@ export class MeetService {
                 [
                     ...finalQuery,
                     {
-                        $sort : {
-                            meetingDate : -1
+                        $sort: {
+                            meetingDate: -1
                         }
                     },
                     {
@@ -698,19 +698,19 @@ export class MeetService {
         }
     }
 
-    async getIndividualMeetingDetails(user : any , meetingId : string){
-        try{
-            const result =  await this.MeetModel.aggregate([
+    async getIndividualMeetingDetails(user: any, meetingId: string) {
+        try {
+            const result = await this.MeetModel.aggregate([
                 {
-                    $match : {
-                        _id : new mongoose.Types.ObjectId(meetingId)
+                    $match: {
+                        _id: new mongoose.Types.ObjectId(meetingId)
                     }
                 },
                 ...individualMeetingDetails
             ])
 
             return result?.[0] ?? {}
-        }catch(err){
+        } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }
     }
