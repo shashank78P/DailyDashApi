@@ -136,8 +136,10 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
     async handleLeaveMeetEvent(client: Socket, payload: JoinMeet) {
         const user = await this.verifyToken(client)
         const { meetingId } = payload
+        console.log("user =============> ")
         console.log(user)
         console.log(meetingId)
+        console.log("user =============> ")
         try {
             const result = await this.MeetService.leaveMeetingRoom(user?.userId, meetingId);
             let { _id, firstName, lastName } = await this.usersService.getUserById(user?.userId)
