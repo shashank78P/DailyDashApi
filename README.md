@@ -1,4 +1,4 @@
-# Daily Dash
+# Daily Dash Api
 
 - [Preview](https://daily-dash.vercel.app/)
 
