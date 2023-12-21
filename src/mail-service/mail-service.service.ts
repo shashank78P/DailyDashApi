@@ -28,7 +28,9 @@ export class MailServiceService {
                 if (err) {
                     throw new InternalServerErrorException(err?.message)
                 }
-                sgMail.setApiKey("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")
+                // sgMail.setApiKey("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")
+                sgMail.setApiKey(process.env.EMAIL_API_KEY)
+                    // ""
                 const msg = {
                     to: toEmail,
                     from: 'dailydash155@gmail.com',
