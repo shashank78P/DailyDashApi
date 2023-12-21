@@ -70,7 +70,11 @@ export class ChatsService {
             }])
 
             await this.ChatInitiatedModel.updateOne({ _id: initiated?.[0]?._id }, { lastChatMessageId: chat?.[0]?._id })
-            return "Initiatyed sucessfull";
+            return {
+                belongsTo : initiated?.[0]?._id,
+                to : result?._id,
+                userId : user?._id
+            }
         } catch (err) {
             throw new InternalServerErrorException(err?.message);
         }
@@ -921,7 +925,16 @@ export class ChatsService {
 
     async createGroup(user: any, groupInfo: createGroupDto) {
         try {
+            console.log("createGroup")
             let { groupName, users } = groupInfo
+            console.log(users)
+            if (Array.isArray(users) && users?.length > 0) {
+                users = [...users, user?._id?.toString()]
+            } else {
+                users = [user?._id.toString()]
+            }
+            console.log(users)
+            
             const group = await this.ChatInitiatedModel.insertMany([
                 {
                     from: user?._id,
@@ -930,21 +943,17 @@ export class ChatsService {
                 }
             ])
             const groupId = group?.[0]?._id
-
-            if (Array.isArray(users) && user?.length > 0) {
-                users = [...users, user?._id]
-            } else {
-                users = [user?._id]
-            }
+            const userDataToAdd = users?.map((ele) => {
+                return {
+                    groupId,
+                    memeberId: new mongoose.Types.ObjectId(ele),
+                    role: (ele == user?._id?.toString()) ? "ADMIN" : "MEMBER",
+                    joinedBy: user?._id
+                }
+            })
+            console.log(userDataToAdd)
             await this.GroupMemberModel.insertMany(
-                users?.map(ele => {
-                    return {
-                        groupId,
-                        memeberId: new mongoose.Types.ObjectId(ele),
-                        role: (ele == user?._id?.toString()) ? "ADMIN" : "MEMBER",
-                        joinedBy: user?._id
-                    }
-                })
+              userDataToAdd  
             )
 
             const firstChat = await this.chatsModel.insertMany([
@@ -968,6 +977,9 @@ export class ChatsService {
                     lastChatMessageId: firstChat?.[0]?._id
                 }
             })
+            return {
+                userIds: users
+            }
         } catch (err) {
             throw new InternalServerErrorException(err?.message)
         }

@@ -265,6 +265,26 @@ export class PollsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
             this.server.emit(`${payload?.to}ChatNotification`, { type: "CHAT" });
         } catch (err) {
             console.log(err)
+            
+        }
+    }
+
+    @SubscribeMessage('NOTIFY-USER-ABOUT-NEW-GROUP')
+    async handlenNotifyUserAboutNewGroup(client: Socket, payload: any): Promise<void> {
+        try {
+            const { userId } = await this.verifyToken(client)
+            // console.log(client?.handshake?.auth);
+            console.log("=================================")
+            console.log("NOTIFY-USER-ABOUT-NEW-GROUP")
+            console.log(payload)
+            payload?.userIds?.map((id , i)=>{
+                console.log(`${id}ChatNotification`)
+                this.server.emit(`${id}ChatNotification`, { type: "CHAT" });
+            })
+            
+        } catch (err) {
+            console.log(err)
+
         }
     }
 
