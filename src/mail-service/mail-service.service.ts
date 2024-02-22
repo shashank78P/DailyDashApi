@@ -40,6 +40,7 @@ export class MailServiceService {
                 }
 
 
+                console.log(process.env.EMAIL_API_KEY)
                 console.log("renderedHtml")
                 sgMail
                     .send(msg)
@@ -49,6 +50,7 @@ export class MailServiceService {
                     })
                     .catch((error) => {
                         console.error("error?.message")
+                        console.error(error?.response)
                         console.error(error?.response?.body)
                         return error
                     })
@@ -56,6 +58,7 @@ export class MailServiceService {
             })
 
         } catch (err) {
+            console.log(process.env.EMAIL_API_KEY)
             console.log(err)
             throw new InternalServerErrorException(err);
         }

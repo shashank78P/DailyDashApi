@@ -64,6 +64,7 @@ export class LogInDetailsService {
             }
 
             const result = await this.createNewLogInDetails(isUserExist?._id.toString(), logInId, req, os, browser)
+            console.log(result)
             this.sendLogInAlert(isUserExist, email, logInId);
             if (!isUserExist?.password) {
                 this.sendMailToResetPassword(email);
@@ -143,6 +144,9 @@ export class LogInDetailsService {
         delete cookieData["password"];
         // res.user = cookieData
         console.log("setting cookie")
+        console.log(process.env.DEVELOPMENT )
+        console.log(token)
+        console.log(cookieData)
 
         return res.cookie("authorization", `Bearer ${token}`, {
             httpOnly: true,

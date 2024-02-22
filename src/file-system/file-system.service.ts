@@ -36,7 +36,8 @@ export class FileSystemService {
             clientSecret: "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",
             redirectUri: "https://developers.google.com/oauthplayground",
         })
-        this.oauth2Client.setCredentials({ refresh_token: "1//04_xLyt92CpwGCgYIARAAGAQSNwF-L9Ir3CUlFOp9BrX1nd_7Fg4XobKoSKoSaN3xZGAXFlkOBaLhG6ZZ6xHO-80pEEusu2_eHlc" })
+        // this.oauth2Client.setCredentials({ refresh_token: "1//04_xLyt92CpwGCgYIARAAGAQSNwF-L9Ir3CUlFOp9BrX1nd_7Fg4XobKoSKoSaN3xZGAXFlkOBaLhG6ZZ6xHO-80pEEusu2_eHlc" })
+        this.oauth2Client.setCredentials({ refresh_token: "1//04_DLoaxARtIgCgYIARAAGAQSNwF-L9Irnu4azBZ88r3sgdi1ZtG0hSQiGEFPuiwPsU1z-EtCDmq33VbaacCKIA8V110mib4WFIQ" })
 
         this.drive = google.drive({
             version: 'v3',
@@ -66,7 +67,7 @@ export class FileSystemService {
             }
             return response;
         } catch (err) {
-            throw new InternalServerErrorException(err);
+            throw new InternalServerErrorException("Something went wrong!!!");
         }
     }
     async uploadFile(user, file) {
@@ -333,11 +334,13 @@ export class FileSystemService {
                 // mode: 'no-cors',
                 // credentials: "omit",
             });
+            console.log(response)
             const buffer = await response.arrayBuffer();
             const fileName = Array(32)
                 .fill(null)
                 .map(() => Math.round(Math.random() * 16).toString(16))
                 .join('');
+
             const filePath = `./uploads/${fileName}.png`;
             fileSyetem?.writeFile(filePath, Buffer.from(buffer));
 
@@ -358,7 +361,7 @@ export class FileSystemService {
 
         } catch (err) {
             console.log(err)
-            throw new InternalServerErrorException(err?.message)
+            throw new InternalServerErrorException("Something went will uploading!!!")
         }
     }
 }

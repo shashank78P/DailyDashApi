@@ -18,7 +18,7 @@ const cookieExtractor = (req) => {
   if (req && req.cookies) {
     // console.log('req.cookies==>', req.cookies);
     const authorization = req.cookies['authorization'];
-    // console.log('authorization==>', authorization);
+    console.log('authorization==>', authorization);
     if (authorization) token = authorization.replace('Bearer ', '');
   }
   // console.log(token);
